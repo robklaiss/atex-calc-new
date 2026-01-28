@@ -59,49 +59,6 @@ python app.py
 
 6. Abrir el navegador en http://localhost:5000
 
-## Despliegue en AWS Lightsail
-
-Para provisionar rápidamente una instancia Linux (Ubuntu/Debian/CentOS) con Nginx, Gunicorn y la app configurada como servicio systemd, ejecuta el script `install_lightsail.sh`:
-
-```bash
-curl -L https://<tu-repo>/install_lightsail.sh -o install_lightsail.sh
-chmod +x install_lightsail.sh
-sudo APP_DIR=/opt/atex-calc-web DOMAIN_NAME=calc.midominio.com SECRET_KEY=<clave_segura> ./install_lightsail.sh
-```
-
-Variables soportadas (todas opcionales):
-
-- `APP_DIR`: ruta destino del código (default `/opt/atex-calc-web`).
-- `SERVICE_NAME`: nombre del servicio systemd (default `atex-calc`).
-- `APP_USER`: usuario del sistema que correrá Gunicorn (por defecto el usuario actual o `root`).
-- `DOMAIN_NAME`: dominio usado en la configuración Nginx (`_` si no aplica).
-- `GUNICORN_WORKERS`: número de workers (default `3`).
-- `PYTHON_BIN`: intérprete usado para crear el venv (default `python3`).
-- `SECRET_KEY`: valor inyectado en el servicio systemd.
-
-El script instala dependencias del sistema, sincroniza el contenido del repositorio, crea un entorno virtual, instala `requirements.txt`, inicializa la base SQLite y configura Gunicorn + Nginx apuntando a `/run/<SERVICE_NAME>/<SERVICE_NAME>.sock`. Tras completarse, revisa `systemctl status <SERVICE_NAME>` y `/var/log/nginx/error.log` si necesitas diagnosticar.
-
-### Paquete auto-contenido
-
-Si prefieres distribuir la app como un ZIP + instalador:
-
-1. Genera el paquete desde tu máquina local:
-   ```bash
-   cd deploy-package
-   ./build_deploy_package.sh
-   ```
-   Este comando crea `deploy-package/dist/atex-calc-deploy.zip` junto con un `install.sh` listo para subir.
-
-2. Copia ambos archivos (`.zip` + `install.sh`) a la instancia (ej. vía `scp`).
-
-3. En el servidor Lightsail:
-   ```bash
-   chmod +x install.sh
-   sudo ZIP_PATH=./atex-calc-deploy.zip APP_DIR=/opt/atex-calc-web SECRET_KEY=<clave_segura> ./install.sh
-   ```
-
-El script `install.sh` descomprime el paquete, invoca `install_lightsail.sh` incluido dentro del ZIP y deja la aplicación corriendo detrás de Nginx y systemd. Puedes conservar los archivos temporales exportando `KEEP_TEMP=1` antes de ejecutar.
-
 ## Estructura del Proyecto
 
 ```

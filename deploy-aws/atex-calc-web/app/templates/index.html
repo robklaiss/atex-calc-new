@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - Calculadora Atex{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="relative bg-gradient-to-br from-primary to-primary-dark text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div class="text-center">
+            <h1 class="text-4xl md:text-6xl font-bold mb-6">
+                Calculadora Atex
+            </h1>
+            <p class="text-xl md:text-2xl mb-8 text-primary-light">
+                Sistema de cálculo para losas con casetones
+            </p>
+            <p class="text-lg mb-12 max-w-3xl mx-auto opacity-90">
+                Herramienta web para analizar y comparar costos entre el sistema Atex y losas tradicionales macizas.
+            </p>
+            <a href="{{ url_for('calculator') }}" class="inline-flex items-center px-8 py-4 bg-white text-primary font-semibold rounded-lg hover:bg-gray-100 transition-all transform hover:scale-105 shadow-xl">
+                <i data-lucide="calculator" class="w-5 h-5 mr-2"></i>
+                Comenzar a calcular
+            </a>
+        </div>
+    </div>
+    <!-- Decorative element -->
+    <div class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gray-50 to-transparent"></div>
+</div>
+
+<!-- Features Section -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div class="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+            <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
+                <i data-lucide="drafting-compass" class="w-6 h-6 text-primary"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-4">Importe DXF</h3>
+            <p class="text-gray-600">
+                Cargue archivos DXF con la geometría de su losa para análisis automático.
+            </p>
+        </div>
+        
+        <!-- Feature 2 -->
+        <div class="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+            <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
+                <i data-lucide="bar-chart-3" class="w-6 h-6 text-primary"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-4">Análisis Comparativo</h3>
+            <p class="text-gray-600">
+                Compare costos entre Atex y losas tradicionales con resultados detallados.
+            </p>
+        </div>
+        
+        <!-- Feature 3 -->
+        <div class="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+            <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
+                <i data-lucide="file-text" class="w-6 h-6 text-primary"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-4">Reportes PDF</h3>
+            <p class="text-gray-600">
+                Genere reportes profesionales en PDF con todos los cálculos y resultados.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- About Section -->
+<div class="bg-white py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-gray-50 rounded-2xl p-8 md:p-12">
+            <h2 class="text-3xl font-bold mb-6 text-center">
+                Acerca de la Calculadora
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <p class="text-gray-600 mb-4">
+                        Esta herramienta web permite:
+                    </p>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-gray-700">Procesar archivos DXF para extraer geometría de losas</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-gray-700">Calcular cantidades de hormigón y acero para diferentes sistemas</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-gray-700">Analizar costos con precios actualizados para diferentes países</span>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-gray-700">Comparar el sistema Atex con losas tradicionales</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-gray-700">Generar reportes detallados en formato PDF</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-gray-700">Guardar y gestionar múltiples cálculos</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="bg-primary text-white py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-4">
+            ¿Listo para optimizar sus cálculos?
+        </h2>
+        <p class="text-xl mb-8 text-primary-light">
+            Comience a usar la calculadora ahora mismo
+        </p>
+        <a href="{{ url_for('calculator') }}" class="inline-flex items-center px-8 py-4 bg-white text-primary font-semibold rounded-lg hover:bg-gray-100 transition-all transform hover:scale-105">
+            <i data-lucide="arrow-right" class="w-5 h-5 mr-2"></i>
+            Ir a la Calculadora
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add entrance animations
+    document.addEventListener('DOMContentLoaded', function() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('slide-up');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        document.querySelectorAll('.bg-white.rounded-xl').forEach(el => {
+            observer.observe(el);
+        });
+        
+        // Re-initialize Lucide icons after dynamic content
+        lucide.createIcons();
+    });
+</script>
+{% endblock %}

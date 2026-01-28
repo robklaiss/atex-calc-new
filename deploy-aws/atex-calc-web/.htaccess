@@ -1,0 +1,56 @@
+# HostGator .htaccess for Python Flask Application
+
+# Set up passenger
+PassengerBaseURI /
+PassengerAppRoot /home/username/public_html/atex-calc-web
+PassengerAppType python
+PassengerStartupFile passenger_wsgi.py
+
+# Set environment variables
+SetEnv FLASK_ENV production
+SetEnv PYTHONPATH /home/username/public_html/atex-calc-web
+
+# Enable directory listings
+Options +Indexes
+
+# Set the default index file
+DirectoryIndex index.html
+
+# Handle static files directly without going through Python
+<StaticFilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg)$">
+    PassengerEnabled off
+</StaticFilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Compress static files
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+</IfModule>
+
+# Cache static files
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/ico "access plus 1 month"
+    ExpiresByType image/svg "access plus 1 month"
+</IfModule>

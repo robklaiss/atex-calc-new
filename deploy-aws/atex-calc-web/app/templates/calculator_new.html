@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Calculadora - Calculadora Atex{% endblock %}
+
+{% block extra_css %}
+<style>
+    .drop-zone {
+        transition: all 0.3s ease;
+    }
+    .drop-zone.dragover {
+        background-color: rgba(244, 129, 32, 0.1);
+        border-color: #F48120;
+        transform: scale(1.02);
+    }
+    .loading {
+        display: none;
+    }
+    .results-card {
+        animation: slideUp 0.5s ease-out;
+    }
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .table-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .table-container::-webkit-scrollbar {
+        width: 8px;
+    }
+    .table-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    .table-container::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+            <i data-lucide="calculator" class="w-8 h-8 mr-3 text-primary"></i>
+            Calculadora de Costos Atex
+        </h1>
+        <p class="mt-2 text-gray-600">Analice y compare costos entre diferentes sistemas constructivos</p>
+    </div>
+
+    <!-- Project Data Section -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-6 flex items-center">
+            <i data-lucide="building-2" class="w-5 h-5 mr-2 text-primary"></i>
+            Datos del Proyecto
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label for="projectName" class="block text-sm font-medium text-gray-700 mb-2">Nombre del Proyecto</label>
+                <input type="text" id="projectName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="Ingrese nombre del proyecto">
+            </div>
+            <div>
+                <label for="client" class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                <input type="text" id="client" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="Ingrese nombre del cliente">
+            </div>
+            <div>
+                <label for="city" class="block text-sm font-medium text-gray-700 mb-2">Ciudad</label>
+                <input type="text" id="city" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="Ingrese ciudad">
+            </div>
+            <div>
+                <label for="country" class="block text-sm font-medium text-gray-700 mb-2">País</label>
+                <select id="country" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                    <option value="">Seleccione un país</option>
+                </select>
+            </div>
+        </div>
+        <div class="mt-4">
+            <label for="workType" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Obra</label>
+            <select id="workType" class="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                <option value="Residencial">Residencial</option>
+                <option value="Comercial">Comercial</option>
+                <option value="Industrial">Industrial</option>
+                <option value="Institucional">Institucional</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- DXF Upload Section -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-6 flex items-center">
+            <i data-lucide="upload" class="w-5 h-5 mr-2 text-primary"></i>
+            Cargar Archivo DXF
+        </h2>
+        <div class="drop-zone border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-primary transition-all" id="dropZone">
+            <i data-lucide="cloud-upload" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i>
+            <p class="text-lg font-medium text-gray-700 mb-2">Arrastre un archivo DXF aquí</p>
+            <p class="text-sm text-gray-500 mb-4">o haga clic para seleccionar</p>
+            <p class="text-xs text-gray-400">Formato: .dxf | Máximo: 16MB</p>
+            <input type="file" id="dxfFile" accept=".dxf" class="hidden">
+        </div>
+        <div class="mt-4 flex items-center justify-between">
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors" data-bs-toggle="modal" data-bs-target="#dxfHelpModal">
+                <i data-lucide="help-circle" class="w-4 h-4 mr-1"></i>
+                Requisitos del archivo DXF
+            </button>
+            <div id="fileInfo" class="hidden"></div>
+        </div>
+    </div>
+
+    <!-- Slab Parameters Section -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-6 flex items-center">
+            <i data-lucide="settings" class="w-5 h-5 mr-2 text-primary"></i>
+            Parámetros de la Losa
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label for="slabThickness" class="block text-sm font-medium text-gray-700 mb-2">Espesor de Losa (m)</label>
+                <input type="number" id="slabThickness" value="0.20" step="0.01" min="0.10" max="0.50" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+            </div>
+            <div>
+                <label for="concreteStrength" class="block text-sm font-medium text-gray-700 mb-2">Resistencia Hormigón (MPa)</label>
+                <select id="concreteStrength" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                    <option value="21">21 MPa</option>
+                    <option value="25" selected>25 MPa</option>
+                    <option value="30">30 MPa</option>
+                    <option value="35">35 MPa</option>
+                </select>
+            </div>
+            <div>
+                <label for="steelStrength" class="block text-sm font-medium text-gray-700 mb-2">Resistencia Acero (MPa)</label>
+                <select id="steelStrength" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                    <option value="420" selected>420 MPa</option>
+                    <option value="500">500 MPa</option>
+                    <option value="600">600 MPa</option>
+                </select>
+            </div>
+            <div>
+                <label for="casetonType" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Casetón</label>
+                <select id="casetonType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                    <option value="">Seleccione casetón</option>
+                </select>
+            </div>
+        </div>
+        <div class="mt-6 flex flex-wrap gap-3">
+            <button id="calculateBtn" class="inline-flex items-center px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-all transform hover:scale-105 shadow-lg">
+                <i data-lucide="calculator" class="w-5 h-5 mr-2"></i>
+                Calcular Costos
+            </button>
+            <button id="generatePdfBtn" disabled class="inline-flex items-center px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+                <i data-lucide="file-text" class="w-5 h-5 mr-2"></i>
+                Generar PDF
+            </button>
+            <button id="saveCalculationBtn" disabled class="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+                <i data-lucide="save" class="w-5 h-5 mr-2"></i>
+                Guardar Cálculo
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="hidden text-center py-12">
+        <div class="inline-flex items-center px-6 py-3 bg-primary/10 rounded-lg">
+            <svg class="animate-spin h-5 w-5 mr-3 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-primary font-medium">Procesando cálculos...</span>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="hidden">
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-primary to-primary-dark rounded-xl p-6 text-white shadow-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-medium opacity-90">Costo Total Atex</h3>
+                    <i data-lucide="trending-down" class="w-5 h-5 opacity-70"></i>
+                </div>
+                <p class="text-3xl font-bold" id="costoAtex">$0</p>
+            </div>
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 text-white shadow-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-medium opacity-90">Costo Losa Maciza</h3>
+                    <i data-lucide="trending-up" class="w-5 h-5 opacity-70"></i>
+                </div>
+                <p class="text-3xl font-bold" id="costoMaciza">$0</p>
+            </div>
+            <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 text-white shadow-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-medium opacity-90">Ahorro Total</h3>
+                    <i data-lucide="piggy-bank" class="w-5 h-5 opacity-70"></i>
+                </div>
+                <p class="text-3xl font-bold" id="ahorroTotal">$0</p>
+            </div>
+            <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white shadow-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-medium opacity-90">% Ahorro</h3>
+                    <i data-lucide="percent" class="w-5 h-5 opacity-70"></i>
+                </div>
+                <p class="text-3xl font-bold" id="porcentajeAhorro">0%</p>
+            </div>
+        </div>
+
+        <!-- Detailed Tables -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Atex Table -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-primary/10 px-6 py-4 border-b border-primary/20">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i data-lucide="list" class="w-5 h-5 mr-2 text-primary"></i>
+                        APU - Sistema Atex
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="table-container">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-900">Item</th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-900">Descripción</th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-900">Unidad</th>
+                                    <th class="px-4 py-3 text-right font-medium text-gray-900">Cantidad</th>
+                                    <th class="px-4 py-3 text-right font-medium text-gray-900">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="apuAtexTable" class="divide-y divide-gray-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maciza Table -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-gray-100 px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i data-lucide="list" class="w-5 h-5 mr-2 text-gray-600"></i>
+                        APU - Losa Maciza
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="table-container">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-900">Item</th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-900">Descripción</th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-900">Unidad</th>
+                                    <th class="px-4 py-3 text-right font-medium text-gray-900">Cantidad</th>
+                                    <th class="px-4 py-3 text-right font-medium text-gray-900">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="apuMacizaTable" class="divide-y divide-gray-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 transform transition-all">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Éxito</h3>
+            <button onclick="closeModal('successModal')" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <p id="successMessage" class="text-gray-600"></p>
+        <div class="mt-6">
+            <button onclick="closeModal('successModal')" class="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                Aceptar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- DXF Help Modal -->
+<div id="dxfHelpModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+                <i data-lucide="file-text" class="w-6 h-6 mr-2 text-primary"></i>
+                Requisitos del Archivo DXF
+            </h3>
+            <button onclick="closeModal('dxfHelpModal')" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-6">
+            <div>
+                <h4 class="font-semibold text-gray-900 mb-3">Capas Requeridas:</h4>
+                <ul class="space-y-2 text-sm text-gray-600">
+                    <li class="flex items-start">
+                        <i data-lucide="check" class="w-4 h-4 mr-2 text-primary mt-0.5 flex-shrink-0"></i>
+                        <span><strong>superficieTotal</strong>: Exactamente un polígono cerrado con el contorno total de la losa</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i data-lucide="check" class="w-4 h-4 mr-2 text-primary mt-0.5 flex-shrink-0"></i>
+                        <span><strong>superficieCasetones</strong>: Al menos un polígono cerrado para las áreas de casetones</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i data-lucide="check" class="w-4 h-4 mr-2 text-primary mt-0.5 flex-shrink-0"></i>
+                        <span><strong>superficieMacizos</strong> (opcional): Áreas macizas como bordes y vigas</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i data-lucide="check" class="w-4 h-4 mr-2 text-primary mt-0.5 flex-shrink-0"></i>
+                        <span><strong>superficieVacios</strong> (opcional): Huecos o vacíos en la losa</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-semibold text-gray-900 mb-3">Entidades Soportadas:</h4>
+                <ul class="space-y-1 text-sm text-gray-600">
+                    <li>• LWPOLYLINE (preferido)</li>
+                    <li>• POLYLINE</li>
+                    <li>• CIRCLE (solo para casetones)</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-semibold text-gray-900 mb-3">Requisitos Importantes:</h4>
+                <ul class="space-y-1 text-sm text-gray-600">
+                    <li>• Todas las geometrías deben estar cerradas</li>
+                    <li>• Los polígonos deben tener al menos 3 puntos</li>
+                    <li>• Los nombres de las capas deben ser exactos</li>
+                </ul>
+            </div>
+            
+            <div class="bg-primary/10 rounded-lg p-4">
+                <p class="text-sm text-primary">
+                    <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
+                    Puede descargar un archivo de ejemplo <a href="/download-test-dxf" class="underline hover:text-primary-dark font-medium">aquí</a>
+                </p>
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <button onclick="closeModal('dxfHelpModal')" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
