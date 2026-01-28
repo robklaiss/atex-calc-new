@@ -6,12 +6,12 @@ set -euo pipefail
 # Atex Calculator Lightsail installer
 # ---------------------------------------------
 
-APP_DIR=${APP_DIR:-/opt/atex-calc-web}
+APP_DIR=${APP_DIR:-/var/www/atex-calc-web}
 SERVICE_NAME=${SERVICE_NAME:-atex-calc}
 DOMAIN_NAME=${DOMAIN_NAME:-_}
 GUNICORN_WORKERS=${GUNICORN_WORKERS:-3}
 PYTHON_BIN=${PYTHON_BIN:-python3}
-APP_USER=${APP_USER:-${SUDO_USER:-$USER}}
+APP_USER=${APP_USER:-ubuntu}
 SCRIPT_SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$APP_DIR/venv"
 SYSTEMD_UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
@@ -49,7 +49,7 @@ install_os_packages() {
         apt)
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -y
-            apt-get install -y python3 python3-venv python3-dev python3-pip build-essential \
+            apt-get install -y python3.12 python3.12-venv python3.12-dev python3-pip build-essential \
                 libfreetype6-dev libjpeg-dev zlib1g-dev libpng-dev sqlite3 git nginx
             ;;
         dnf)
@@ -71,12 +71,12 @@ sync_project_files() {
         --exclude '__pycache__' \
         --exclude '*.pyc' \
         "$SCRIPT_SRC_DIR/" "$APP_DIR/"
-    chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
+    chown -R "$APP_USER":www-data "$APP_DIR"
 }
 
 setup_virtualenv() {
     echo "Creando entorno virtual en $VENV_DIR..."
-    sudo -u "$APP_USER" "$PYTHON_BIN" -m venv "$VENV_DIR"
+    sudo -u "$APP_USER" python3.12 -m venv "$VENV_DIR"
     sudo -u "$APP_USER" "$VENV_DIR/bin/pip" install --upgrade pip wheel
     sudo -u "$APP_USER" "$VENV_DIR/bin/pip" install -r "$APP_DIR/requirements.txt"
 }
@@ -97,14 +97,11 @@ After=network.target
 
 [Service]
 User=$APP_USER
-Group=$APP_USER
+Group=www-data
 WorkingDirectory=$APP_DIR
-Environment="FLASK_ENV=production"
-Environment="SECRET_KEY=${SECRET_KEY:-changeme}"
-RuntimeDirectory=$SERVICE_NAME
-RuntimeDirectoryMode=0755
-ExecStart=$VENV_DIR/bin/gunicorn --workers $GUNICORN_WORKERS --bind unix:/run/$SERVICE_NAME/$SERVICE_NAME.sock app:app
-Restart=on-failure
+Environment="PATH=$VENV_DIR/bin"
+ExecStart=$VENV_DIR/bin/gunicorn --workers $GUNICORN_WORKERS --bind 127.0.0.1:8000 passenger_wsgi:application
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
@@ -133,7 +130,7 @@ server {
     location / {
         include proxy_params;
         proxy_set_header Host $host;
-        proxy_pass http://unix:/run/$SERVICE_NAME/$SERVICE_NAME.sock;
+        proxy_pass http://127.0.0.1:8000;
     }
 }
 EOF
@@ -157,7 +154,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_pass http://unix:/run/$SERVICE_NAME/$SERVICE_NAME.sock;
+        proxy_pass http://127.0.0.1:8000;
     }
 }
 EOF
@@ -184,11 +181,11 @@ Instalación completada.
 
 - Código desplegado en: $APP_DIR
 - Servicio systemd: $SERVICE_NAME (systemctl status $SERVICE_NAME)
-- Socket Gunicorn: /run/$SERVICE_NAME/$SERVICE_NAME.sock
+- Gunicorn running on: 127.0.0.1:8000
 - Configuración Nginx: ver archivo generado en /etc/nginx/
 
-Recuerda actualizar la variable SECRET_KEY en $SYSTEMD_UNIT y reiniciar el servicio.
-Puedes ajustar DOMAIN_NAME, APP_DIR, APP_USER exportando las variables antes de ejecutar el script.
+Recuerda configurar la variable SECRET_KEY en el archivo .env
+Puedes ajustar DOMAIN_NAME, APP_DIR exportando las variables antes de ejecutar el script.
 INFO
 }
 

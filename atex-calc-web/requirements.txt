@@ -1,9 +1,9 @@
 Flask==2.3.3
 Werkzeug==2.3.7
 reportlab==4.0.4
-matplotlib==3.7.2
+matplotlib==3.8
 ezdxf==1.2.0
 shapely==2.0.1
 Pillow==10.0.1
-numpy==1.24.3
+numpy==1.26.4
 gunicorn==21.2.0
