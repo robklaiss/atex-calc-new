@@ -1,9 +1,17 @@
 import sqlite3
 import json
+import os
+
+# Get the absolute path of the directory where this file is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_PATH = os.path.join(BASE_DIR, 'database', 'atex_calculations.db')
 
 def init_database():
     """Initialize SQLite database with tables and sample data"""
-    conn = sqlite3.connect('database/atex_calculations.db')
+    # Ensure database directory exists
+    os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
+    
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
     # Create countries table
