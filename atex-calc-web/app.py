@@ -28,6 +28,24 @@ from app.utils.section_plotter import generate_section_plot
 from app.utils.homologation import generate_homologation_analysis
 
 
+def _get_plate_thickness_values_cm():
+    raw = os.getenv('PLATE_THICKNESSES_CM', '').strip()
+    if raw:
+        values = []
+        for token in raw.split(','):
+            token = token.strip()
+            if not token:
+                continue
+            try:
+                values.append(float(token))
+            except ValueError:
+                continue
+        values = sorted(set(round(v, 3) for v in values if v > 0))
+        if values:
+            return values
+    return [5, 6, 7, 7.5, 8, 9, 10, 11, 12]
+
+
 def _fetch_caseton(caseton_id=None, caseton_name=None):
     if not caseton_id and not caseton_name:
         return None
@@ -46,14 +64,29 @@ def _build_section_preview(caseton_row, slab_thickness_m):
     if not caseton_row:
         return None
     try:
-        _, name, side1, side2, height, bw, bs, *_ = caseton_row
+        (
+            _,
+            name,
+            side1,
+            side2,
+            height,
+            bw,
+            bs,
+            system_label,
+            *_
+        ) = caseton_row
         bf_cm = float(side1)
         bs_cm = float(bs)
         bw_cm = float(bw)
         hv_cm = float(height)
         total_thickness_cm = max(float(slab_thickness_m or 0.0) * 100.0, 0.0)
-        hf_cm = max(total_thickness_cm - hv_cm, 5.0)
-        he_cm = total_thickness_cm if total_thickness_cm > 0 else hv_cm + hf_cm
+        if total_thickness_cm <= 0 or total_thickness_cm < hv_cm:
+            hf_cm = 5.0
+            total_thickness_cm = hv_cm + hf_cm
+        else:
+            hf_cm = max(total_thickness_cm - hv_cm, 5.0)
+            total_thickness_cm = hv_cm + hf_cm
+        he_cm = total_thickness_cm
         section = generate_section_plot(
             'aligerada', bf_cm, bs_cm, bw_cm, hv_cm, hf_cm, he_cm
         )
@@ -66,11 +99,12 @@ def _build_section_preview(caseton_row, slab_thickness_m):
                 'bw_cm': bw_cm,
                 'hv_cm': hv_cm,
                 'hf_cm': hf_cm,
-                'total_thickness_cm': total_thickness_cm or (hv_cm + hf_cm),
+                'total_thickness_cm': total_thickness_cm,
                 'inertia_cm4': section.inertia_cm4,
                 'area_cm2': section.area_cm2,
                 'value_ratio': section.value_ratio,
                 'equivalent_solid_height_cm': section.equivalent_solid_height_cm,
+                'system': system_label,
             }
         }
     except Exception:
@@ -108,15 +142,19 @@ def _build_geometry_analysis(geometry_data):
 
     areas = geometry_data.get('areas', {})
     area_total = float(areas.get('superficieTotal') or 0.0)
-    area_vacios = float(areas.get('superficieVacios', {}).get('total') or 0.0)
-    area_macizos = float(areas.get('superficieMacizos', {}).get('total') or 0.0)
+    area_vacios = float((areas.get('superficieVacios') or {}).get('total') or 0.0)
+    area_macizos = float((areas.get('superficieMacizos') or {}).get('total') or 0.0)
     casetones = geometry_data.get('casetones', [])
     area_casetones = sum(float(c.get('area') or 0.0) for c in casetones)
+    area_vacios = min(max(area_vacios, 0.0), max(area_total, 0.0))
     area_neta = max(area_total - area_vacios, 0.0)
-    area_vigas = max(area_total - area_macizos - area_casetones, 0.0)
+    area_macizos = min(max(area_macizos, 0.0), area_neta)
+    max_casetones_area = max(area_neta - area_macizos, 0.0)
+    area_casetones = min(area_casetones, max_casetones_area)
+    area_vigas = max(area_neta - area_macizos - area_casetones, 0.0)
 
     def pct(value):
-        return (value / area_total * 100.0) if area_total else 0.0
+        return (value / area_neta * 100.0) if area_neta else 0.0
 
     return {
         'areas': {
@@ -128,7 +166,7 @@ def _build_geometry_analysis(geometry_data):
             'vigas_m2': area_vigas,
         },
         'percentages': {
-            'neta_pct': pct(area_neta),
+            'neta_pct': 100.0 if area_neta else 0.0,
             'paneles_macizos_pct': pct(area_macizos),
             'paneles_casetones_pct': pct(area_casetones),
             'vigas_pct': pct(area_vigas),
@@ -158,8 +196,11 @@ def _caseton_row_to_params(caseton_row, slab_thickness_m):
         bw_cm = float(bw or 0.0)
         hv_cm = float(height or 0.0)
         total_thickness_cm = max(float(slab_thickness_m or 0.0) * 100.0, 0.0)
-        hf_cm = max(total_thickness_cm - hv_cm, 5.0)
-        if total_thickness_cm <= 0:
+        if total_thickness_cm <= 0 or total_thickness_cm < hv_cm:
+            hf_cm = 5.0
+            total_thickness_cm = hv_cm + hf_cm
+        else:
+            hf_cm = max(total_thickness_cm - hv_cm, 5.0)
             total_thickness_cm = hv_cm + hf_cm
         return {
             'bf_cm': bf_cm,
@@ -173,14 +214,10 @@ def _caseton_row_to_params(caseton_row, slab_thickness_m):
         return None
 
 @app.route('/')
-def index():
-    """Main page"""
-    return render_template('index.html')
-
 @app.route('/calculator')
 def calculator():
-    """Calculator page"""
-    return render_template('calculator.html')
+    """Calculator page (default landing)"""
+    return render_template('calculator.html', plate_thickness_values=_get_plate_thickness_values_cm())
 
 @app.route('/api/upload-dxf', methods=['POST'])
 def upload_dxf():
@@ -226,8 +263,70 @@ def calculate():
         slab_thickness = data.get('slab_thickness')
         if slab_thickness is None:
             slab_thickness = data.get('slabThickness', 0.20)
+        slab_thicknesses = data.get('slabThicknesses') or data.get('slab_thicknesses') or []
         selected_caseton_id = data.get('selected_caseton_id') or data.get('selectedCasetonId')
         selected_caseton_name = data.get('selected_caseton_name') or data.get('selectedCasetonName') or data.get('casetonType')
+        allowed_casetones = data.get('country_available_casetones')
+        if allowed_casetones is None:
+            allowed_casetones = data.get('countryAvailableCasetones')
+        if allowed_casetones is not None and not isinstance(allowed_casetones, list):
+            allowed_casetones = None
+        atex_system = data.get('atex_system') or data.get('atexSystem')
+        if not atex_system and isinstance(data.get('atexOptions'), dict):
+            atex_system = data['atexOptions'].get('system')
+        slab_geometry = data.get('slabGeometry') or data.get('slab_geometry') or {}
+
+        hf_options_cm = None
+        if isinstance(slab_thicknesses, list) and slab_thicknesses:
+            converted = []
+            for value in slab_thicknesses:
+                try:
+                    converted.append(float(value) * 100.0)
+                except (TypeError, ValueError):
+                    continue
+            hf_options_cm = sorted(set(round(v, 3) for v in converted)) or None
+
+        def _to_float(value):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        if isinstance(slab_geometry, dict) and slab_geometry:
+            slab_type_input = (slab_geometry.get('type') or data.get('slabType') or 'aligerada').lower()
+            if slab_type_input == 'maciza':
+                he_cm = _to_float(slab_geometry.get('h_cm') or slab_geometry.get('he_cm'))
+                if he_cm is None or he_cm <= 0:
+                    return jsonify({'error': 'Complete el espesor total de la losa maciza (h en cm).'}), 400
+            else:
+                bf_cm = _to_float(slab_geometry.get('bf_cm'))
+                bs_cm = _to_float(slab_geometry.get('bs_cm'))
+                bw_cm = _to_float(slab_geometry.get('bw_cm'))
+                hv_cm = _to_float(slab_geometry.get('hv_cm'))
+                hf_cm = _to_float(slab_geometry.get('hf_cm'))
+                slab_height_cm = _to_float(slab_geometry.get('slab_height_cm'))
+                if hf_cm is None and slab_height_cm is not None and hv_cm is not None:
+                    hf_cm = slab_height_cm - hv_cm
+                required = [bf_cm, bs_cm, bw_cm, hv_cm, hf_cm]
+                if any(v is None or v <= 0 for v in required):
+                    return jsonify({'error': 'Complete los datos de la sección de losa original (bf, bs, bw, hv, hf en cm).'}), 400
+
+        if isinstance(slab_geometry, dict) and slab_geometry:
+            slab_type_for_thickness = (slab_geometry.get('type') or data.get('slabType') or 'aligerada').lower()
+            if slab_type_for_thickness == 'maciza':
+                he_cm = _to_float(slab_geometry.get('h_cm') or slab_geometry.get('he_cm'))
+                if he_cm and he_cm > 0:
+                    slab_thickness = he_cm / 100.0
+            else:
+                hv_cm = _to_float(slab_geometry.get('hv_cm'))
+                hf_cm = _to_float(slab_geometry.get('hf_cm'))
+                slab_height_cm = _to_float(slab_geometry.get('slab_height_cm'))
+                if hf_cm is None and slab_height_cm is not None and hv_cm is not None:
+                    hf_cm = slab_height_cm - hv_cm
+                if slab_height_cm is None and hv_cm is not None and hf_cm is not None:
+                    slab_height_cm = hv_cm + hf_cm
+                if slab_height_cm is not None and slab_height_cm > 0:
+                    slab_thickness = slab_height_cm / 100.0
         try:
             if selected_caseton_id is not None:
                 selected_caseton_id = int(selected_caseton_id)
@@ -250,6 +349,57 @@ def calculate():
         if fallback_params is None:
             default_row = _fetch_default_caseton()
             fallback_params = _caseton_row_to_params(default_row, slab_thickness)
+
+        target_section_metrics = None
+        if isinstance(slab_geometry, dict) and slab_geometry:
+            slab_type = (slab_geometry.get('type') or data.get('slabType') or 'aligerada').lower()
+            if slab_type == 'maciza':
+                try:
+                    he_cm = float(slab_geometry.get('h_cm') or slab_geometry.get('he_cm') or 0.0)
+                except (TypeError, ValueError):
+                    he_cm = 0.0
+                if he_cm > 0:
+                    maciza_section = generate_section_plot('maciza', 100.0, 0.0, 0.0, 0.0, 0.0, he_cm)
+                    target_section_metrics = {
+                        'bf_cm': 100.0,
+                        'bs_cm': 0.0,
+                        'bw_cm': 0.0,
+                        'hv_cm': 0.0,
+                        'hf_cm': 0.0,
+                        'total_thickness_cm': he_cm,
+                        'inertia_cm4': maciza_section.inertia_cm4,
+                        'area_cm2': maciza_section.area_cm2,
+                        'value_ratio': maciza_section.value_ratio,
+                        'equivalent_solid_height_cm': maciza_section.equivalent_solid_height_cm,
+                        'slab_type': 'Maciza',
+                    }
+            else:
+                bf_cm = _to_float(slab_geometry.get('bf_cm'))
+                bs_cm = _to_float(slab_geometry.get('bs_cm'))
+                bw_cm = _to_float(slab_geometry.get('bw_cm'))
+                hv_cm = _to_float(slab_geometry.get('hv_cm'))
+                hf_cm = _to_float(slab_geometry.get('hf_cm'))
+                slab_height_cm = _to_float(slab_geometry.get('slab_height_cm'))
+                if hf_cm is None and slab_height_cm is not None and hv_cm is not None:
+                    hf_cm = slab_height_cm - hv_cm
+                if slab_height_cm is None and hv_cm is not None and hf_cm is not None:
+                    slab_height_cm = hv_cm + hf_cm
+
+                if all(v is not None for v in (bf_cm, bs_cm, bw_cm, hv_cm, hf_cm)):
+                    aligerada_section = generate_section_plot('aligerada', bf_cm, bs_cm, bw_cm, hv_cm, hf_cm, hv_cm + hf_cm)
+                    target_section_metrics = {
+                        'bf_cm': bf_cm,
+                        'bs_cm': bs_cm,
+                        'bw_cm': bw_cm,
+                        'hv_cm': hv_cm,
+                        'hf_cm': hf_cm,
+                        'total_thickness_cm': hv_cm + hf_cm,
+                        'inertia_cm4': aligerada_section.inertia_cm4,
+                        'area_cm2': aligerada_section.area_cm2,
+                        'value_ratio': aligerada_section.value_ratio,
+                        'equivalent_solid_height_cm': aligerada_section.equivalent_solid_height_cm,
+                        'slab_type': 'Aligerada',
+                    }
 
         section_preview = _build_section_preview(caseton_row, slab_thickness)
         if section_preview:
@@ -286,8 +436,11 @@ def calculate():
 
         homologation = generate_homologation_analysis(
             database_path=app.config['DATABASE'],
-            section_metrics=section_preview['metrics'] if section_preview else None,
-            fallback_params=fallback_params
+            section_metrics=target_section_metrics or (section_preview['metrics'] if section_preview else None),
+            fallback_params=fallback_params,
+            allowed_casetones=allowed_casetones,
+            hf_options_cm=hf_options_cm,
+            system=atex_system,
         )
         results.setdefault('homologation', homologation)
         if homologation.get('original_metrics'):
@@ -352,9 +505,21 @@ def get_casetones():
     conn = sqlite3.connect(app.config['DATABASE'])
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM casetones ORDER BY name")
-    casetones = [{'id': row[0], 'name': row[1], 'side1': row[2], 'side2': row[3], 
-                  'height': row[4], 'bw': row[5], 'bs': row[6], 'consumption': row[7], 
-                  'rental_price': row[8]} for row in cursor.fetchall()]
+    casetones = [
+        {
+            'id': row[0],
+            'name': row[1],
+            'side1': row[2],
+            'side2': row[3],
+            'height': row[4],
+            'bw': row[5],
+            'bs': row[6],
+            'system': row[7],
+            'consumption': row[8],
+            'rental_price': row[9],
+        }
+        for row in cursor.fetchall()
+    ]
     conn.close()
     return jsonify(casetones)
 
@@ -404,4 +569,6 @@ def download_test_dxf():
         return "Test file not found", 404
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', '5001'))
+    app.run(debug=True, host=host, port=port)

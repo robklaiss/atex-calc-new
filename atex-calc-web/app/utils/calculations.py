@@ -1,16 +1,18 @@
 import math
+import os
 import sqlite3
 from datetime import datetime
 
 class Caseton:
     """Represents a waffle slab form (caseton)"""
-    def __init__(self, nombre, lado1, lado2, altura, bw, bs, consumo_base, precio_alquiler_dia):
+    def __init__(self, nombre, lado1, lado2, altura, bw, bs, system, consumo_base, precio_alquiler_dia):
         self.nombre = nombre
         self.lado1 = lado1  # cm
         self.lado2 = lado2  # cm
         self.altura = altura  # cm
         self.bw = bw  # cm
         self.bs = bs  # cm
+        self.system = system
         self.consumo_base = consumo_base  # m3/m2 for 5cm slab
         self.precio_alquiler_dia = precio_alquiler_dia
     
@@ -53,23 +55,31 @@ def calculate_atex_quantities(geometry_data, country='Colombia', slab_thickness=
     """, (country,))
     apu_items = cursor.fetchall()
     
-    # Calculate areas
-    area_total = geometry_data.get('areas', {}).get('superficieTotal', 0)
-    area_casetones = sum(c['area'] for c in geometry_data.get('casetones', []))
-    area_macizos = geometry_data.get('areas', {}).get('superficieMacizos', {}).get('total', 0)
-    area_vacios = geometry_data.get('areas', {}).get('superficieVacios', {}).get('total', 0)
+    # Calculate areas provided by the DXF
+    areas = geometry_data.get('areas', {})
+    area_total = float(areas.get('superficieTotal') or 0.0)
+    area_vacios = float((areas.get('superficieVacios') or {}).get('total') or 0.0)
+    area_macizos = float((areas.get('superficieMacizos') or {}).get('total') or 0.0)
+    area_casetones = sum(float(c.get('area') or 0.0) for c in geometry_data.get('casetones', []))
+
+    area_neta = max(area_total - area_vacios, 0.0)
+    # Caseton area cannot exceed the usable net area after subtracting macizos
+    max_casetones_area = max(area_neta - area_macizos, 0.0)
+    area_casetones = min(area_casetones, max_casetones_area)
     
     # Calculate concrete volume
     # Base slab (5cm) + waffle portion
-    volumen_base = area_total * 0.05  # 5cm base slab
-    volumen_casetones = area_casetones * (slab_thickness - 0.05) * 0.4  # 40% efficiency
+    base_thickness = 0.05
+    extra_thickness = max(slab_thickness - base_thickness, 0.0)
+    volumen_base = area_neta * base_thickness  # 5cm base slab only on usable area
+    volumen_casetones = area_casetones * extra_thickness * 0.4  # 40% efficiency
     volumen_macizos = area_macizos * slab_thickness
     volumen_total = volumen_base + volumen_casetones + volumen_macizos
     
     # Calculate steel reinforcement
     # Typical reinforcement: 0.15 kg/m2 for 5cm slab + additional for thickness
-    refuerzo_base = area_total * 0.15
-    refuerzo_adicional = area_total * (slab_thickness - 0.05) * 8.0  # kg/m2 per cm of thickness
+    refuerzo_base = area_neta * 0.15
+    refuerzo_adicional = area_neta * extra_thickness * 8.0  # kg/m2 per cm of thickness
     acero_total = refuerzo_base + refuerzo_adicional
     
     # Calculate formwork (casetones)
@@ -77,7 +87,29 @@ def calculate_atex_quantities(geometry_data, country='Colombia', slab_thickness=
         cursor.execute("SELECT * FROM casetones WHERE id = ?", (selected_caseton,))
         caseton_data = cursor.fetchone()
         if caseton_data:
-            caseton = Caseton(*caseton_data[1:])
+            (
+                _,
+                nombre,
+                lado1,
+                lado2,
+                altura,
+                bw,
+                bs,
+                system_label,
+                consumo_base,
+                precio_alquiler,
+            ) = caseton_data
+            caseton = Caseton(
+                nombre,
+                lado1,
+                lado2,
+                altura,
+                bw,
+                bs,
+                system_label,
+                consumo_base,
+                precio_alquiler,
+            )
             num_casetones = area_casetones / caseton.get_area_m2()
             costo_alquiler_casetones = num_casetones * caseton.precio_alquiler_dia
         else:
@@ -87,12 +119,12 @@ def calculate_atex_quantities(geometry_data, country='Colombia', slab_thickness=
         # Default calculation
         num_casetones = area_casetones / 0.09  # Assuming 30x30 cm casetones
         costo_alquiler_casetones = num_casetones * 2.50
-    
+
     # Calculate labor costs
-    mano_obra_losa = area_total * 12.40  # Reduced labor cost for ATex
-    
+    mano_obra_losa = area_neta * 12.40  # Reduced labor cost for ATex
+
     # Calculate equipment rental
-    alquiler_equipo = area_total * 2.80
+    alquiler_equipo = area_neta * 2.80
     
     # Prepare APU table
     apu_tecnologia_atex = []
@@ -125,7 +157,7 @@ def calculate_atex_quantities(geometry_data, country='Colombia', slab_thickness=
         'consecutivo': str(consecutivo),
         'descripcion': 'Mano de Obra Losa',
         'unidad': 'm2',
-        'cantidad': f'{area_total:.2f}',
+        'cantidad': f'{area_neta:.2f}',
         'subTotal': f'{mano_obra_losa:.2f}'
     })
     consecutivo += 1
@@ -145,7 +177,7 @@ def calculate_atex_quantities(geometry_data, country='Colombia', slab_thickness=
         'consecutivo': str(consecutivo),
         'descripcion': 'Alquiler de equipo',
         'unidad': 'm2',
-        'cantidad': f'{area_total:.2f}',
+        'cantidad': f'{area_neta:.2f}',
         'subTotal': f'{alquiler_equipo:.2f}'
     })
     
@@ -153,10 +185,10 @@ def calculate_atex_quantities(geometry_data, country='Colombia', slab_thickness=
     total_atex = sum(float(item['subTotal'].replace(',', '.')) for item in apu_tecnologia_atex)
     
     # Calculate comparison with traditional slab
-    volumen_losa_tradicional = area_total * slab_thickness
-    acero_losa_tradicional = area_total * (slab_thickness * 10.0 + 0.15)  # More steel for traditional
-    encofrado_tradicional = area_total * 35.20  # Formwork cost
-    mano_obra_tradicional = area_total * 15.50
+    volumen_losa_tradicional = area_neta * slab_thickness
+    acero_losa_tradicional = area_neta * (slab_thickness * 10.0 + 0.15)  # More steel for traditional
+    encofrado_tradicional = area_neta * 35.20  # Formwork cost
+    mano_obra_tradicional = area_neta * 15.50
     
     # Traditional slab costs
     costo_hormigon_tradicional = volumen_losa_tradicional * precio_hormigon
@@ -203,27 +235,31 @@ def calculate_atex_quantities(geometry_data, country='Colombia', slab_thickness=
                     'consecutivo': '3',
                     'descripcion': 'Mano de Obra Losa',
                     'unidad': 'm2',
-                    'cantidad': f'{area_total:.2f}',
+                    'cantidad': f'{area_neta:.2f}',
                     'subTotal': f'{mano_obra_tradicional:.2f}'
                 },
                 {
                     'consecutivo': '4',
                     'descripcion': 'Encofrado Losa',
                     'unidad': 'm2',
-                    'cantidad': f'{area_total:.2f}',
+                    'cantidad': f'{area_neta:.2f}',
                     'subTotal': f'{encofrado_tradicional:.2f}'
                 },
                 {
                     'consecutivo': '5',
                     'descripcion': 'Alquiler de equipo',
                     'unidad': 'm2',
-                    'cantidad': f'{area_total:.2f}',
+                    'cantidad': f'{area_neta:.2f}',
                     'subTotal': f'{alquiler_equipo:.2f}'
                 }
             ]
         },
         'resumen': {
-            'areaTotal': area_total,
+            'areaTotalPlano': area_total,
+            'areaVaciosPlano': area_vacios,
+            'areaMacizosPlano': area_macizos,
+            'areaCasetonesPlano': area_casetones,
+            'areaUtilCalculada': area_neta,
             'volumenHormigonAtex': volumen_total,
             'volumenHormigonMaciza': volumen_losa_tradicional,
             'aceroAtex': acero_total,

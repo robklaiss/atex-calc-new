@@ -108,15 +108,19 @@ def _build_geometry_analysis(geometry_data):
 
     areas = geometry_data.get('areas', {})
     area_total = float(areas.get('superficieTotal') or 0.0)
-    area_vacios = float(areas.get('superficieVacios', {}).get('total') or 0.0)
-    area_macizos = float(areas.get('superficieMacizos', {}).get('total') or 0.0)
+    area_vacios = float((areas.get('superficieVacios') or {}).get('total') or 0.0)
+    area_macizos = float((areas.get('superficieMacizos') or {}).get('total') or 0.0)
     casetones = geometry_data.get('casetones', [])
     area_casetones = sum(float(c.get('area') or 0.0) for c in casetones)
+    area_vacios = min(max(area_vacios, 0.0), max(area_total, 0.0))
     area_neta = max(area_total - area_vacios, 0.0)
-    area_vigas = max(area_total - area_macizos - area_casetones, 0.0)
+    area_macizos = min(max(area_macizos, 0.0), area_neta)
+    max_casetones_area = max(area_neta - area_macizos, 0.0)
+    area_casetones = min(area_casetones, max_casetones_area)
+    area_vigas = max(area_neta - area_macizos - area_casetones, 0.0)
 
     def pct(value):
-        return (value / area_total * 100.0) if area_total else 0.0
+        return (value / area_neta * 100.0) if area_neta else 0.0
 
     return {
         'areas': {
@@ -128,7 +132,7 @@ def _build_geometry_analysis(geometry_data):
             'vigas_m2': area_vigas,
         },
         'percentages': {
-            'neta_pct': pct(area_neta),
+            'neta_pct': 100.0 if area_neta else 0.0,
             'paneles_macizos_pct': pct(area_macizos),
             'paneles_casetones_pct': pct(area_casetones),
             'vigas_pct': pct(area_vigas),

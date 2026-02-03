@@ -16,6 +16,13 @@ LAYER_COLORS = {
     "superficieCasetones": "#3B6EA5",
 }
 
+LAYER_LABELS = {
+    "superficieTotal": "Superficie Vigas",
+    "superficieVacios": "Vacíos",
+    "superficieMacizos": "Paneles Macizos",
+    "superficieCasetones": "Paneles Casetonados",
+}
+
 
 def _plot_polygons(ax, polygons: List[Dict], color: str, numerate: bool = False, label_prefix: str = "P"):
     for poly in polygons:
@@ -100,9 +107,8 @@ def generate_geometry_preview(geometry_result: Dict) -> Dict:
 
     legend_handles = []
     for layer, color in LAYER_COLORS.items():
-        legend_handles.append(mpatches.Patch(color=color, label=layer.replace("superficie", "Superficie ")))
-    if casetones_info:
-        legend_handles.append(mpatches.Patch(facecolor="#93c5fd", edgecolor="#1f2937", label="Casetones"))
+        label = LAYER_LABELS.get(layer, layer.replace("superficie", "Superficie "))
+        legend_handles.append(mpatches.Patch(color=color, label=label))
 
     if legend_handles:
         ax.legend(handles=legend_handles, loc="lower right", fontsize=9, frameon=True)

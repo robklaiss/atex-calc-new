@@ -7,10 +7,16 @@
     .drop-zone {
         transition: all 0.3s ease;
     }
+    #dropZone {
+        border: 2px dashed rgba(148, 163, 184, 0.8);
+    }
     .drop-zone.dragover {
         background-color: rgba(244, 129, 32, 0.1);
         border-color: #F48120;
         transform: scale(1.02);
+    }
+    .upload-card {
+        position: relative;
     }
     .loading {
         display: none;
@@ -53,7 +59,39 @@
             <i data-lucide="calculator" class="w-8 h-8 mr-3 text-primary"></i>
             Calculadora de Costos Atex
         </h1>
-        <p class="mt-2 text-gray-600">Analice y compare costos entre diferentes sistemas constructivos</p>
+        <p class="mt-2 text-gray-600">Analize y compare costos entre diferentes sistemas constructivos</p>
+    </div>
+
+    <!-- DXF Upload Section -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6 upload-card">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
+            <div>
+                <h2 class="text-xl font-semibold flex items-center text-gray-900">
+                    <i data-lucide="upload" class="w-5 h-5 mr-2 text-primary"></i>
+                    Cargar Archivo DXF
+                </h2>
+                <p class="text-sm text-gray-500">Arrastre un archivo DXF o haga clic para seleccionarlo. Máximo 16&nbsp;MB.</p>
+            </div>
+            <div>
+                <button id="downloadTestDxf" onclick="window.location='/download-test-dxf'" class="inline-flex items-center px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition">
+                    <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                    Descargar DXF de ejemplo
+                </button>
+            </div>
+        </div>
+        <label id="dropZone" for="dxfFile" class="drop-zone border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center cursor-pointer bg-gray-50 hover:border-primary/60 transition relative overflow-hidden" role="button" tabindex="0">
+            <i data-lucide="cloud-upload" class="w-12 h-12 mx-auto text-primary"></i>
+            <p class="mt-4 text-lg font-semibold text-gray-900">Arrastre el archivo aquí</p>
+            <p class="text-sm text-gray-500">o haga clic para seleccionar desde su equipo. Formato: .dxf</p>
+        </label>
+        <input type="file" id="dxfFile" accept=".dxf" class="sr-only">
+        <div id="fileInfo" class="hidden mt-4"></div>
+        <div id="previewContainer" class="hidden mt-6">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">Vista previa de la geometría</h3>
+            <div class="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
+                <img id="geometryPreview" src="" alt="Vista previa DXF" class="w-full">
+            </div>
+        </div>
     </div>
 
     <!-- Project Data Section -->
@@ -82,117 +120,48 @@
                 </select>
             </div>
         </div>
-        <div class="mt-4">
-            <label for="workType" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Obra</label>
-            <select id="workType" class="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
-                <option value="Residencial">Residencial</option>
-                <option value="Comercial">Comercial</option>
-                <option value="Industrial">Industrial</option>
-                <option value="Institucional">Institucional</option>
-            </select>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            <div>
+                <label for="projectDate" class="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
+                <input type="date" id="projectDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+            </div>
+            <div>
+                <label for="currencyName" class="block text-sm font-medium text-gray-700 mb-2">Moneda</label>
+                <input type="text" id="currencyName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="Ej: Peso colombiano">
+            </div>
+            <div>
+                <label for="exchangeRate" class="block text-sm font-medium text-gray-700 mb-2">Cambio (1 USD = )</label>
+                <div class="flex items-center gap-2">
+                    <input type="number" step="0.0001" min="0" id="exchangeRate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="3850">
+                    <span class="text-sm text-gray-500">moneda</span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- DXF Upload Section -->
+    <!-- Work Data Section -->
     <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
         <h2 class="text-xl font-semibold mb-6 flex items-center">
-            <i data-lucide="upload" class="w-5 h-5 mr-2 text-primary"></i>
-            Cargar Archivo DXF
+            <i data-lucide="hard-hat" class="w-5 h-5 mr-2 text-primary"></i>
+            Datos de la Obra
         </h2>
-        <div class="drop-zone border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-primary transition-all relative" id="dropZone">
-            <i data-lucide="cloud-upload" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i>
-            <p class="text-lg font-medium text-gray-700 mb-2">Arrastre un archivo DXF aquí</p>
-            <p class="text-sm text-gray-500 mb-4">o haga clic para seleccionar</p>
-            <p class="text-xs text-gray-400">Formato: .dxf | Máximo: 16MB</p>
-            <input type="file" id="dxfFile" name="file" accept=".dxf" class="absolute inset-0 opacity-0 cursor-pointer">
-        </div>
-        <div class="mt-4 flex items-center justify-between">
-            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors" onclick="openModal('dxfHelpModal')">
-                <i data-lucide="help-circle" class="w-4 h-4 mr-1"></i>
-                Requisitos del archivo DXF
-            </button>
-            <div id="fileInfo" class="hidden"></div>
-        </div>
-        <div id="previewContainer" class="hidden mt-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                <i data-lucide="image" class="w-5 h-5 mr-2 text-primary"></i>
-                Vista previa de la geometría
-            </h3>
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                <img id="geometryPreview" src="" alt="Vista previa del DXF" class="w-full rounded-lg shadow-md object-contain bg-white" />
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label for="floors" class="block text-sm font-medium text-gray-700 mb-2">Número de Pisos</label>
+                <input type="number" min="0" step="1" id="floors" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="Ej: 5">
             </div>
-
-            <!-- Section Preview -->
-            <div id="sectionCard" class="bg-white rounded-xl shadow-lg overflow-hidden hidden">
-                <div class="bg-indigo-50 px-6 py-4 border-b border-indigo-100 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i data-lucide="activity" class="w-5 h-5 mr-2 text-indigo-600"></i>
-                        Sección e inercia del casetón
-                    </h3>
-                    <span id="sectionCasetonName" class="text-sm text-indigo-700 font-medium"></span>
-                </div>
-                <div class="p-6 space-y-4">
-                    <img id="sectionImage" src="" alt="Sección del casetón" class="w-full rounded-lg border border-gray-200 shadow-sm bg-white object-contain" />
-                    <div class="grid grid-cols-2 gap-4 text-sm" id="sectionMetrics">
-                        <!-- Filled dynamically -->
-                    </div>
-                </div>
+            <div>
+                <label for="cyclesPerMonth" class="block text-sm font-medium text-gray-700 mb-2">Ciclos por mes</label>
+                <input type="number" min="0" step="any" id="cyclesPerMonth" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="Ej: 3">
             </div>
-        </div>
-
-        <!-- Homologation Tables -->
-        <div id="homologationCard" class="bg-white rounded-xl shadow-lg overflow-hidden hidden mt-6">
-            <div class="bg-amber-50 px-6 py-4 border-b border-amber-100 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i data-lucide="layers" class="w-5 h-5 mr-2 text-amber-600"></i>
-                    Homologación de inercias
-                </h3>
-                <span id="homologationTarget" class="text-sm text-amber-700 font-medium"></span>
-            </div>
-            <div class="p-6 space-y-6">
-                <div>
-                    <h4 class="text-base font-semibold text-gray-800 mb-3">Propiedades sección losa original</h4>
-                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table class="min-w-full divide-y divide-gray-200 text-sm" id="homologationPropertiesTable">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Item</th>
-                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Especificación</th>
-                                    <th class="px-4 py-2 text-left font-medium text-gray-500">Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 class="text-base font-semibold text-gray-800 mb-3">Tabla de homologación de inercias</h4>
-                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table class="min-w-full text-sm" id="homologationOptionsTable">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">Casetón (cm)</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">h Casetón (cm)</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">e Placa (cm)</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">h Losa (cm)</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">Inercia (cm⁴)</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">Valor (1/cm³) x10³</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">Check</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500">Consumo (m³/m²)</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 class="text-base font-semibold text-gray-800 mb-3">Casetón recomendado</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="homologationRecommendation">
-                        <!-- Filled dynamically -->
-                    </div>
-                </div>
+            <div>
+                <label for="workType" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Obra</label>
+                <select id="workType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                    <option value="Residencial">Residencial</option>
+                    <option value="Comercial">Comercial</option>
+                    <option value="Industrial">Industrial</option>
+                    <option value="Institucional">Institucional</option>
+                </select>
             </div>
         </div>
     </div>
@@ -203,54 +172,238 @@
             <i data-lucide="settings" class="w-5 h-5 mr-2 text-primary"></i>
             Parámetros de la Losa
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-                <label for="slabThickness" class="block text-sm font-medium text-gray-700 mb-2">Espesor de Losa (m)</label>
-                <input type="number" id="slabThickness" value="0.20" step="0.01" min="0.10" max="0.50" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Seleccionar espesores de placa</label>
+                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+                    <p class="text-sm text-gray-500 mb-4">Elija uno o varios espesores finales de losa en centímetros.</p>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3" id="slabThicknessOptions">
+                        {% for value in plate_thickness_values %}
+                        <label class="flex items-center space-x-2 px-3 py-2 bg-white rounded-xl border border-gray-200 hover:border-primary/40 cursor-pointer transition">
+                            <input type="checkbox" value="{{ value }}" class="form-checkbox h-4 w-4 text-primary focus:ring-primary slab-thickness-checkbox">
+                            <span class="text-sm text-gray-700">{{ '%.1f'|format(value) }} cm</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3" id="slabThicknessHelper">Seleccione uno o varios valores.</p>
+                </div>
             </div>
-            <div>
-                <label for="concreteStrength" class="block text-sm font-medium text-gray-700 mb-2">Resistencia Hormigón (MPa)</label>
-                <select id="concreteStrength" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
-                    <option value="21">21 MPa</option>
-                    <option value="25" selected>25 MPa</option>
-                    <option value="30">30 MPa</option>
-                    <option value="35">35 MPa</option>
-                </select>
-            </div>
-            <div>
-                <label for="steelStrength" class="block text-sm font-medium text-gray-700 mb-2">Resistencia Acero (MPa)</label>
-                <select id="steelStrength" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
-                    <option value="420" selected>420 MPa</option>
-                    <option value="500">500 MPa</option>
-                    <option value="600">600 MPa</option>
-                </select>
-            </div>
-            <div>
-                <label for="casetonType" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Casetón</label>
-                <select id="casetonType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
-                    <option value="">Seleccione casetón</option>
-                </select>
-                <p id="casetonSuggestion" class="mt-2 text-sm text-emerald-600 hidden"></p>
+            <div class="space-y-4">
+                <div class="hidden">
+                    <label for="concreteStrength" class="block text-sm font-medium text-gray-700 mb-2">Resistencia Hormigón (MPa)</label>
+                    <select id="concreteStrength" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                        <option value="21">21 MPa</option>
+                        <option value="25" selected>25 MPa</option>
+                        <option value="30">30 MPa</option>
+                        <option value="35">35 MPa</option>
+                    </select>
+                </div>
+                <div class="hidden">
+                    <label for="steelStrength" class="block text-sm font-medium text-gray-700 mb-2">Resistencia Acero (MPa)</label>
+                    <select id="steelStrength" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                        <option value="420" selected>420 MPa</option>
+                        <option value="500">500 MPa</option>
+                        <option value="600">600 MPa</option>
+                    </select>
+                </div>
+                <div class="hidden">
+                    <label for="casetonType" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Casetón</label>
+                    <select id="casetonType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                        <option value="">Seleccione casetón</option>
+                    </select>
+                </div>
             </div>
         </div>
-        <div class="mt-6 flex flex-wrap gap-3">
-            <button id="calculateBtn" class="inline-flex items-center px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-all transform hover:scale-105 shadow-lg">
-                <i data-lucide="calculator" class="w-5 h-5 mr-2"></i>
-                Calcular Costos
-            </button>
-            <button id="generatePdfBtn" disabled class="inline-flex items-center px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+        <input type="hidden" id="slabThickness" value="0.20">
+    </div>
+
+    <!-- Slab Section Type -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-xl font-semibold flex items-center text-gray-900">
+                    <i data-lucide="layers" class="w-5 h-5 mr-2 text-primary"></i>
+                    Sección de Losa
+                </h2>
+                <p class="text-sm text-gray-500">Defina si la losa será aligerada o maciza e ingrese las dimensiones clave.</p>
+            </div>
+            <div class="flex items-center gap-3 bg-gray-50 px-3 py-2 rounded-full border border-gray-200">
+                <label class="inline-flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <input type="radio" name="slabType" value="aligerada" class="text-primary focus:ring-primary" checked>
+                    <span>Aligerada</span>
+                </label>
+                <span class="text-gray-300">|</span>
+                <label class="inline-flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <input type="radio" name="slabType" value="maciza" class="text-primary focus:ring-primary">
+                    <span>Maciza</span>
+                </label>
+            </div>
+        </div>
+
+        <div id="slabAligeradaForm" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="slabBf" class="block text-sm font-medium text-gray-700">bf (cm)</label>
+                        <input type="number" id="slabBf" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ej: 70" step="0.5" min="0">
+                    </div>
+                    <div>
+                        <label for="slabBs" class="block text-sm font-medium text-gray-700">bs (cm)</label>
+                        <input type="number" id="slabBs" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ej: 12" step="0.5" min="0">
+                    </div>
+                    <div>
+                        <label for="slabBw" class="block text-sm font-medium text-gray-700">bw (cm)</label>
+                        <input type="number" id="slabBw" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ej: 12" step="0.5" min="0">
+                    </div>
+                    <div>
+                        <label for="slabHv" class="block text-sm font-medium text-gray-700">hv (cm)</label>
+                        <input type="number" id="slabHv" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ej: 25" step="0.5" min="0">
+                    </div>
+                    <div>
+                        <label for="slabHf" class="block text-sm font-medium text-gray-700">hf (cm)</label>
+                        <input type="number" id="slabHf" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ej: 5" step="0.5" min="0">
+                    </div>
+                    <div>
+                        <label for="slabHLosa" class="block text-sm font-medium text-gray-700">h Losa (cm)</label>
+                        <input type="number" id="slabHLosa" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed" placeholder="Calculado automáticamente" step="0.5" min="0" readonly>
+                        <p class="text-xs text-gray-500 mt-1">h Losa se calcula como hv + hf.</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500">Puede usar las mismas dimensiones que figuran en el DXF o las recomendadas por ingeniería.</p>
+            </div>
+            <div class="bg-gray-50 rounded-2xl border border-gray-200 p-4 flex items-center justify-center">
+                <svg viewBox="0 0 240 140" class="max-h-48" role="img" aria-label="Esquema losa aligerada">
+                    <defs>
+                        <pattern id="aligerada-hatch" patternUnits="userSpaceOnUse" width="6" height="6">
+                            <path d="M0 6 L6 0" stroke="#4B4B4B" stroke-width="1" />
+                        </pattern>
+                    </defs>
+                    <rect x="10" y="40" width="220" height="30" fill="url(#aligerada-hatch)" stroke="#1F2937" stroke-width="2"></rect>
+                    <rect x="100" y="70" width="40" height="60" fill="url(#aligerada-hatch)" stroke="#1F2937" stroke-width="2"></rect>
+                    <text x="120" y="30" text-anchor="middle" font-size="12" fill="#111827">bf</text>
+                    <line x1="20" y1="25" x2="220" y2="25" stroke="#111827" stroke-width="1"></line>
+                    <polyline points="20,20 20,30 220,30 220,20" stroke="#111827" fill="none"></polyline>
+                    <line x1="110" y1="105" x2="110" y2="135" stroke="#111827" stroke-width="1"></line>
+                    <line x1="130" y1="105" x2="130" y2="135" stroke="#111827" stroke-width="1"></line>
+                    <polyline points="110,130 110,135 130,135 130,130" stroke="#111827" fill="none"></polyline>
+                    <text x="120" y="148" text-anchor="middle" font-size="12" fill="#111827">bw</text>
+                    <line x1="95" y1="75" x2="95" y2="135" stroke="#111827" stroke-width="1"></line>
+                    <line x1="145" y1="75" x2="145" y2="135" stroke="#111827" stroke-width="1"></line>
+                    <text x="150" y="110" font-size="12" fill="#111827">hv</text>
+                    <line x1="10" y1="45" x2="10" y2="65" stroke="#111827" stroke-width="1"></line>
+                    <line x1="10" y1="75" x2="10" y2="95" stroke="#111827" stroke-width="1"></line>
+                    <text x="20" y="60" font-size="12" fill="#111827">hf</text>
+                    <line x1="20" y1="52" x2="90" y2="52" stroke="#111827" stroke-width="1" stroke-dasharray="4 3"></line>
+                    <text x="65" y="44" font-size="12" fill="#111827">bs</text>
+                </svg>
+            </div>
+        </div>
+
+        <div id="slabMacizaForm" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
+            <div class="space-y-4">
+                <div class="max-w-sm">
+                    <label for="solidHeight" class="block text-sm font-medium text-gray-700">h (cm)</label>
+                    <input type="number" id="solidHeight" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ej: 20" step="0.5" min="0">
+                </div>
+                <p class="text-xs text-gray-500">Indique el espesor total de la losa maciza.</p>
+            </div>
+            <div class="bg-gray-50 rounded-2xl border border-gray-200 p-4 flex items-center justify-center">
+                <svg viewBox="0 0 240 80" class="max-h-32" role="img" aria-label="Esquema losa maciza">
+                    <defs>
+                        <pattern id="maciza-hatch" patternUnits="userSpaceOnUse" width="6" height="6">
+                            <path d="M0 6 L6 0" stroke="#4B4B4B" stroke-width="1" />
+                        </pattern>
+                    </defs>
+                    <rect x="20" y="20" width="200" height="30" fill="url(#maciza-hatch)" stroke="#1F2937" stroke-width="2"></rect>
+                    <line x1="20" y1="15" x2="20" y2="55" stroke="#111827" stroke-width="1"></line>
+                    <line x1="220" y1="15" x2="220" y2="55" stroke="#111827" stroke-width="1"></line>
+                    <polyline points="20,15 20,10 220,10 220,15" stroke="#111827" fill="none"></polyline>
+                    <text x="230" y="35" font-size="12" fill="#111827">h</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sistema Atex / Otros Datos -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="border border-gray-200 rounded-2xl p-4 bg-gradient-to-b from-gray-50 to-white">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Sistema Atex</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-3 text-sm font-medium text-gray-700">
+                        <input type="radio" name="atexSystem" value="unidireccional" class="text-primary focus:ring-primary">
+                        <span>Unidireccional</span>
+                    </label>
+                    <label class="flex items-center space-x-3 text-sm font-medium text-gray-700">
+                        <input type="radio" name="atexSystem" value="bidireccional" class="text-primary focus:ring-primary" checked>
+                        <span>Bidireccional</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="border border-gray-200 rounded-2xl p-4 bg-gradient-to-b from-gray-50 to-white">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Otros Datos</h3>
+                <div class="space-y-4">
+                    <label class="flex items-center space-x-3 text-sm font-medium text-gray-700">
+                        <input type="checkbox" id="includeCabetex" class="text-primary focus:ring-primary" checked>
+                        <span>Incluir Reglas y Cabetex</span>
+                    </label>
+                    <div>
+                        <label for="beamHeight" class="block text-sm font-medium text-gray-700 mb-1">h Vigas (cm)</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="beamHeight" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ej: 45" step="0.5" min="0">
+                            <span class="text-sm text-gray-500">cm</span>
+                        </div>
+                    </div>
+                    <label class="flex items-center space-x-3 text-sm font-medium text-gray-700">
+                        <input type="checkbox" id="numberCasetones" class="text-primary focus:ring-primary" checked>
+                        <span>Numerar casetones</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div class="flex flex-wrap gap-4 justify-end">
+            <button id="generatePdfBtn" disabled class="inline-flex items-center px-6 py-3 bg-red-600 text-white font-semibold rounded-lg shadow hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
                 <i data-lucide="file-text" class="w-5 h-5 mr-2"></i>
                 Generar PDF
             </button>
-            <button id="saveCalculationBtn" disabled class="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
-                <i data-lucide="save" class="w-5 h-5 mr-2"></i>
-                Guardar Cálculo
+            <button id="calculateBtn" class="inline-flex items-center px-6 py-3 bg-primary text-white font-semibold rounded-lg shadow hover:bg-primary-dark transition">
+                <i data-lucide="calculator" class="w-5 h-5 mr-2"></i>
+                Calcular Costos
             </button>
+        </div>
+    </div>
+
+    <!-- Caseton availability -->
+    <div id="availabilityCard" class="bg-white rounded-xl shadow-lg p-6 mb-6 hidden">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold flex items-center text-gray-900">
+                <i data-lucide="grid" class="w-5 h-5 mr-2 text-primary"></i>
+                Disponibles en: <span id="availabilityCountry" class="ml-2 text-primary">—</span>
+            </h2>
+            <p id="availabilityLegend" class="text-sm text-gray-500">Casetones ATEX disponibles en el país seleccionado</p>
+        </div>
+        <div class="overflow-x-auto border border-gray-200 rounded-xl">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-center font-semibold text-gray-600 w-32">Disponible</th>
+                        <th class="px-4 py-2 text-left font-semibold text-gray-600">Casetón ATEX</th>
+                    </tr>
+                </thead>
+                <tbody id="availabilityTableBody" class="divide-y divide-gray-200">
+                </tbody>
+            </table>
         </div>
     </div>
 
     <!-- Loading Indicator -->
     <div id="loadingIndicator" class="hidden text-center py-12">
+        <!-- ... -->
         <div class="inline-flex items-center px-6 py-3 bg-primary/10 rounded-lg">
             <svg class="animate-spin h-5 w-5 mr-3 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -312,6 +465,100 @@
                     <i data-lucide="percent" class="w-5 h-5 opacity-70"></i>
                 </div>
                 <p class="text-3xl font-bold" id="porcentajeAhorro">0%</p>
+            </div>
+        </div>
+
+        <!-- Homologation Card -->
+        <div class="grid grid-cols-1 gap-6 mb-8">
+            <div id="homologationCard" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i data-lucide="activity" class="w-5 h-5 mr-2 text-primary"></i>
+                        Homologación de inercias
+                    </h3>
+                    <span class="text-xs font-semibold uppercase tracking-wide text-primary">Cálculo de equivalencia</span>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">Opciones evaluadas</h4>
+                    <div class="border border-gray-100 rounded-xl overflow-x-auto">
+                        <table id="homologationOptionsTable" class="min-w-full text-xs">
+                            <thead class="bg-gray-50 text-gray-500">
+                                <tr>
+                                    <th class="px-3 py-2 text-left">Casetón</th>
+                                    <th class="px-3 py-2 text-right">hv</th>
+                                    <th class="px-3 py-2 text-right">hf</th>
+                                    <th class="px-3 py-2 text-right">h</th>
+                                    <th class="px-3 py-2 text-right">Inercia</th>
+                                    <th class="px-3 py-2 text-right">b/I</th>
+                                    <th class="px-3 py-2 text-center">Check</th>
+                                    <th class="px-3 py-2 text-right">Consumo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Filled dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="homologationRecommendation" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                    <!-- Filled dynamically -->
+                </div>
+                <p id="casetonSuggestion" class="hidden text-sm text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 mt-4"></p>
+            </div>
+        </div>
+
+        <!-- Original vs geometría -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div id="originalSectionCard" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i data-lucide="layers" class="w-5 h-5 mr-2 text-primary"></i>
+                        Sección original DXF
+                    </h3>
+                    <span class="text-xs uppercase tracking-wide text-gray-400">Referencia</span>
+                </div>
+                <div class="border border-gray-100 rounded-xl overflow-hidden">
+                    <table class="min-w-full text-sm">
+                        <tbody id="originalSectionTable">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="geometryAnalysisCard" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i data-lucide="grid" class="w-5 h-5 mr-2 text-primary"></i>
+                        Análisis de geometría
+                    </h3>
+                    <span class="text-xs uppercase tracking-wide text-gray-400">DXF</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Áreas (m²)</h4>
+                        <div class="border border-gray-100 rounded-xl overflow-hidden">
+                            <table class="min-w-full text-sm">
+                                <tbody id="geometryAreasTable">
+                                    <!-- Filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Porcentajes (%)</h4>
+                        <div class="border border-gray-100 rounded-xl overflow-hidden">
+                            <table class="min-w-full text-sm">
+                                <tbody id="geometryPercentagesTable">
+                                    <!-- Filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+                    <p class="text-sm font-medium text-gray-600">Casetones identificados</p>
+                    <p id="geometryCasetonCount" class="text-2xl font-bold text-gray-900">0</p>
+                </div>
             </div>
         </div>
 
@@ -553,6 +800,7 @@ let selectedCountryInfo = null;
 let casetonCatalog = {};
 let casetonManualSelection = false;
 let lastRecommendedCaseton = null;
+let countryAvailabilitySelections = {};
 const currencyCodeMap = {
     'Peso colombiano': 'COP',
     'Peso mexicano': 'MXN',
@@ -564,20 +812,456 @@ const currencyCodeMap = {
     'Euro': 'EUR',
     'Guaraní paraguayo': 'PYG'
 };
+const countryCasetonAvailability = {
+    'Paraguay': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300', '660x180', '660x210', '660x260', '660x300'],
+            unavailable: ['700x260', '800x200', '800x250', '800x300', '800x350', '800x400']
+        },
+        unidireccional: {
+            available: ['755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400'],
+            unavailable: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300']
+        }
+    },
+    'Brasil': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300'],
+            unavailable: ['660x180', '660x210', '660x260', '660x300', '700x260', '800x200', '800x250', '800x300', '800x350', '800x400']
+        },
+        unidireccional: {
+            available: ['755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400'],
+            unavailable: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300']
+        }
+    },
+    'Colombia': {
+        bidireccional: {
+            available: ['800x200', '800x250', '800x300', '800x350', '800x400'],
+            unavailable: ['610x210', '610x260', '610x300', '660x180', '660x210', '660x260', '660x300', '700x260']
+        },
+        unidireccional: {
+            available: ['755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400'],
+            unavailable: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300']
+        }
+    },
+    'Panamá': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300', '700x260'],
+            unavailable: ['660x180', '660x210', '660x260', '660x300', '800x200', '800x250', '800x300', '800x350', '800x400']
+        },
+        unidireccional: {
+            available: ['755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400'],
+            unavailable: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300']
+        }
+    },
+    'República Dominicana': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300'],
+            unavailable: ['660x180', '660x210', '660x260', '660x300', '700x260', '800x200', '800x250', '800x300', '800x350', '800x400']
+        },
+        unidireccional: {
+            available: ['755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400'],
+            unavailable: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300']
+        }
+    },
+    'México': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300', '660x180', '660x210', '660x260', '660x300', '700x260'],
+            unavailable: ['800x200', '800x250', '800x300', '800x350', '800x400']
+        },
+        unidireccional: {
+            available: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300', '755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400'],
+            unavailable: []
+        }
+    },
+    'Perú': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300', '660x180', '660x210', '660x260', '660x300', '700x260', '800x200', '800x250'],
+            unavailable: ['800x300', '800x350', '800x400']
+        },
+        unidireccional: {
+            available: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300'],
+            unavailable: ['755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400']
+        }
+    },
+    'Chile': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300', '660x180', '660x210', '660x260', '660x300', '800x200', '800x250', '800x300'],
+            unavailable: ['700x260', '800x350', '800x400']
+        },
+        unidireccional: {
+            available: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300'],
+            unavailable: ['755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400']
+        }
+    },
+    'Ecuador': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300', '700x260'],
+            unavailable: ['660x180', '660x210', '660x260', '660x300', '800x200', '800x250', '800x300', '800x350', '800x400']
+        },
+        unidireccional: {
+            available: ['610Ux210', '610Ux260', '610Ux300', '755Ux200', '755Ux250', '755Ux300'],
+            unavailable: ['655Ux180', '655Ux210', '655Ux260', '655Ux300', '755Ux350', '755Ux400']
+        }
+    },
+    'Argentina': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300', '660x180', '660x210', '660x260', '660x300', '800x200', '800x250', '800x300', '800x350'],
+            unavailable: ['700x260', '800x400']
+        },
+        unidireccional: {
+            available: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300', '755Ux200', '755Ux250', '755Ux300'],
+            unavailable: ['755Ux350', '755Ux400']
+        }
+    },
+    'España': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300', '660x180', '660x210', '660x260', '660x300', '700x260', '800x200', '800x250', '800x300', '800x350', '800x400'],
+            unavailable: []
+        },
+        unidireccional: {
+            available: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300', '755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400'],
+            unavailable: []
+        }
+    },
+    'Estados Unidos': {
+        bidireccional: {
+            available: ['610x210', '610x260', '610x300', '660x180', '660x210', '660x260', '660x300', '700x260', '800x200', '800x250', '800x300', '800x350', '800x400'],
+            unavailable: []
+        },
+        unidireccional: {
+            available: ['610Ux210', '610Ux260', '610Ux300', '655Ux180', '655Ux210', '655Ux260', '655Ux300', '755Ux200', '755Ux250', '755Ux300', '755Ux350', '755Ux400'],
+            unavailable: []
+        }
+    }
+};
+
+function isUnidirectionalSelection() {
+    return getSelectedAtexSystem() === 'unidireccional';
+}
+
+function getSystemFilteredAvailability(countryName) {
+    if (!countryName || !countryCasetonAvailability[countryName]) {
+        return null;
+    }
+    const countryData = countryCasetonAvailability[countryName];
+    const systemKey = isUnidirectionalSelection() ? 'unidireccional' : 'bidireccional';
+    return countryData[systemKey] || { available: [], unavailable: [] };
+}
+
+function ensureCountryAvailabilityState(countryName, options = []) {
+    if (!countryName) {
+        return;
+    }
+    let allowedList = [];
+    let defaultList = [];
+    if (Array.isArray(options)) {
+        allowedList = options;
+        defaultList = options;
+    } else if (options && typeof options === 'object') {
+        allowedList = options.allowed || [];
+        defaultList = options.defaults || [];
+    }
+    const allowed = new Set(allowedList);
+    let selection = countryAvailabilitySelections[countryName];
+    if (!selection) {
+        selection = new Set(defaultList || []);
+    } else if (allowed.size) {
+        selection = new Set([...selection].filter(name => allowed.has(name)));
+        if (!selection.size && defaultList.length) {
+            defaultList.forEach(name => selection.add(name));
+        }
+    } else {
+        selection = new Set(selection);
+    }
+    countryAvailabilitySelections[countryName] = selection;
+}
+
+function getCountryAvailabilitySelection(countryName) {
+    if (!countryName || !countryCasetonAvailability[countryName]) {
+        return [];
+    }
+    const filtered = getSystemFilteredAvailability(countryName);
+    const allowedNames = [
+        ...((filtered?.available) || []),
+        ...((filtered?.unavailable) || [])
+    ];
+    ensureCountryAvailabilityState(countryName, {
+        allowed: allowedNames,
+        defaults: filtered?.available || []
+    });
+    return Array.from(countryAvailabilitySelections[countryName] || []);
+}
+
+function updateAvailabilityLegend(countryName) {
+    const legend = $('#availabilityLegend');
+    if (!countryName || !countryCasetonAvailability[countryName]) {
+        legend.text('Casetones ATEX disponibles en el país seleccionado');
+        return;
+    }
+    const filtered = getSystemFilteredAvailability(countryName);
+    const total = filtered?.available?.length || 0;
+    const manualOptions = filtered?.unavailable?.length || 0;
+    const selectedCount = getCountryAvailabilitySelection(countryName).length;
+    if (!total) {
+        if (manualOptions) {
+            legend.text(`Sin casetones disponibles en catálogo, pero puede habilitar manualmente (${selectedCount} seleccionados).`);
+        } else {
+            legend.text('No hay casetones disponibles para el sistema seleccionado.');
+        }
+        return;
+    }
+    legend.text(`Casetones incluidos en el cálculo: ${selectedCount} de ${total}`);
+}
+
+function handleAvailabilityToggle(event) {
+    const checkbox = $(event.currentTarget);
+    const country = checkbox.data('country');
+    const caseton = checkbox.data('caseton');
+    if (!country || !caseton) {
+        return;
+    }
+    const filtered = getSystemFilteredAvailability(country);
+    const allowedNames = [
+        ...((filtered?.available) || []),
+        ...((filtered?.unavailable) || [])
+    ];
+    ensureCountryAvailabilityState(country, {
+        allowed: allowedNames,
+        defaults: filtered?.available || []
+    });
+    const selection = countryAvailabilitySelections[country];
+    if (checkbox.is(':checked')) {
+        selection.add(caseton);
+    } else {
+        selection.delete(caseton);
+    }
+    updateAvailabilityLegend(country);
+}
+
 const progressSteps = [
     { selector: '#progressStep1', message: 'Preparando geometría del DXF...' },
     { selector: '#progressStep2', message: 'Consultando base de datos y tablas APU...' },
     { selector: '#progressStep3', message: 'Generando comparativo Atex vs Losa maciza...' }
 ];
 
+function getSlabThicknessCheckboxes() {
+    return $('.slab-thickness-checkbox');
+}
+
+function getSelectedSlabThicknessesCm() {
+    return getSlabThicknessCheckboxes()
+        .filter(':checked')
+        .map((_, el) => parseFloat(el.value))
+        .get()
+        .filter((value) => Number.isFinite(value));
+}
+
+function getSelectedSlabThicknessesMeters() {
+    const cmValues = getSelectedSlabThicknessesCm();
+    if (cmValues.length) {
+        return cmValues.map((value) => Number((value / 100).toFixed(3)));
+    }
+    const fallback = parseFloat($('#slabThickness').val());
+    return Number.isFinite(fallback) && fallback > 0 ? [fallback] : [];
+}
+
+function initializeSlabThicknessSelector() {
+    const checkboxes = getSlabThicknessCheckboxes();
+    if (!checkboxes.length) {
+        return;
+    }
+
+    const defaultValues = [5, 7.5];
+    const defaultCheckboxes = defaultValues
+        .map((value) => checkboxes.filter(`[value="${value}"]`))
+        .filter((item) => item.length)
+        .map((item) => $(item.get(0)));
+    if (defaultCheckboxes.length) {
+        defaultCheckboxes.forEach((checkbox) => checkbox.prop('checked', true));
+    } else {
+        $(checkboxes.get(0)).prop('checked', true);
+    }
+
+    function syncState() {
+        let selectedCm = getSelectedSlabThicknessesCm();
+        if (!selectedCm.length) {
+            if (defaultCheckboxes.length) {
+                defaultCheckboxes[0].prop('checked', true);
+            } else {
+                $(checkboxes.get(0)).prop('checked', true);
+            }
+            selectedCm = getSelectedSlabThicknessesCm();
+        }
+
+        const helper = $('#slabThicknessHelper');
+        const formatted = selectedCm.map((value) => `${value.toFixed(1)} cm`);
+        if (formatted.length <= 1) {
+            helper
+                .removeClass('text-red-600')
+                .addClass('text-gray-500')
+                .text(`Espesor seleccionado: ${formatted[0]}`);
+        } else {
+            helper
+                .removeClass('text-red-600')
+                .addClass('text-gray-500')
+                .text(`Espesores seleccionados: ${formatted.join(', ')}`);
+        }
+    }
+
+    syncState();
+
+    checkboxes.on('change', function() {
+        if (!checkboxes.filter(':checked').length) {
+            $(this).prop('checked', true);
+        }
+        syncState();
+    });
+}
+
+function getSelectedSlabType() {
+    return $('input[name="slabType"]:checked').val() || 'aligerada';
+}
+
+function toggleSlabTypeForms(type) {
+    if (type === 'maciza') {
+        $('#slabMacizaForm').removeClass('hidden');
+        $('#slabAligeradaForm').addClass('hidden');
+    } else {
+        $('#slabAligeradaForm').removeClass('hidden');
+        $('#slabMacizaForm').addClass('hidden');
+    }
+}
+
+function initializeSlabTypeSwitcher() {
+    const radios = $('input[name="slabType"]');
+    if (!radios.length) {
+        return;
+    }
+    toggleSlabTypeForms(getSelectedSlabType());
+    radios.on('change', function() {
+        toggleSlabTypeForms(getSelectedSlabType());
+    });
+
+    $('#solidHeight').on('input', function() {
+        const value = parseFloat($(this).val());
+        if (Number.isFinite(value) && value > 0) {
+            $('#slabThickness').val((value / 100).toFixed(3));
+        }
+    });
+}
+
+function validateSlabGeometryInputs() {
+    const type = getSelectedSlabType();
+    if (type === 'maciza') {
+        const h = parseFloat($('#solidHeight').val());
+        if (!Number.isFinite(h) || h <= 0) {
+            showError('Complete el espesor total de la losa maciza (h en cm).');
+            return false;
+        }
+        return true;
+    }
+
+    const fields = [
+        { selector: '#slabBf', label: 'bf' },
+        { selector: '#slabBs', label: 'bs' },
+        { selector: '#slabBw', label: 'bw' },
+        { selector: '#slabHv', label: 'hv' },
+        { selector: '#slabHf', label: 'hf' }
+    ];
+    for (const field of fields) {
+        const value = parseFloat($(field.selector).val());
+        if (!Number.isFinite(value) || value <= 0) {
+            showError(`Complete el dato ${field.label} (cm) de la sección de losa.`);
+            return false;
+        }
+    }
+    return true;
+}
+
+function collectSlabGeometry() {
+    const type = getSelectedSlabType();
+    if (type === 'maciza') {
+        return {
+            type,
+            h_cm: parseFloat($('#solidHeight').val()) || null
+        };
+    }
+    const parseField = (selector) => {
+        const value = parseFloat($(selector).val());
+        return Number.isFinite(value) ? value : null;
+    };
+    const hv = parseField('#slabHv');
+    const hf = parseField('#slabHf');
+    const slabHeight = (hv !== null && hf !== null) ? hv + hf : parseField('#slabHLosa');
+    return {
+        type,
+        bf_cm: parseField('#slabBf'),
+        bs_cm: parseField('#slabBs'),
+        bw_cm: parseField('#slabBw'),
+        hv_cm: hv,
+        hf_cm: hf,
+        slab_height_cm: slabHeight
+    };
+}
+
+function updateSlabTotalHeightInput() {
+    const hv = parseFloat($('#slabHv').val());
+    const hf = parseFloat($('#slabHf').val());
+    if (Number.isFinite(hv) && Number.isFinite(hf)) {
+        const total = hv + hf;
+        $('#slabHLosa').val(total.toFixed(2));
+        if (total > 0) {
+            $('#slabThickness').val((total / 100).toFixed(3));
+        }
+    } else {
+        $('#slabHLosa').val('');
+    }
+}
+
+function getSelectedAtexSystem() {
+    return $('input[name="atexSystem"]:checked').val() || 'bidireccional';
+}
+
+function collectAtexOptions() {
+    return {
+        system: getSelectedAtexSystem(),
+        includeCabetex: $('#includeCabetex').is(':checked'),
+        beamHeightCm: (function() {
+            const value = parseFloat($('#beamHeight').val());
+            return Number.isFinite(value) ? value : null;
+        })(),
+        numberCasetones: $('#numberCasetones').is(':checked')
+    };
+}
+
 $(document).ready(function() {
     // Load countries and casetones
     loadCountries();
     loadCasetones();
+    setDefaultProjectDate();
+    initializeSlabThicknessSelector();
+    initializeSlabTypeSwitcher();
+    updateSlabTotalHeightInput();
+    $('#slabHv, #slabHf').on('input', updateSlabTotalHeightInput);
+    $('input[name="atexSystem"]').on('change', function() {
+        const currentCountry = $('#country').val();
+        if (currentCountry) {
+            renderAvailabilityTable(currentCountry);
+        }
+    });
     
     // Initialize Lucide icons
+    $('#availabilityTableBody').on('change', '.availability-toggle', handleAvailabilityToggle);
     lucide.createIcons();
 });
+
+function setDefaultProjectDate() {
+    const dateInput = $('#projectDate');
+    if (!dateInput.val()) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.val(today);
+    }
+}
 
 function loadCountries() {
     $.get('/api/countries', function(data) {
@@ -592,8 +1276,71 @@ function loadCountries() {
 
         select.on('change', function() {
             selectedCountryInfo = countryCatalog[$(this).val()] || null;
+            syncCurrencyFields(selectedCountryInfo);
+            renderAvailabilityTable($(this).val());
         });
     });
+}
+
+function syncCurrencyFields(country) {
+    const currencyInput = $('#currencyName');
+    const exchangeInput = $('#exchangeRate');
+    if (!country) {
+        return;
+    }
+    if (country.currency) {
+        currencyInput.val(country.currency);
+    }
+    if (country.exchange_rate !== null && country.exchange_rate !== undefined) {
+        exchangeInput.val(country.exchange_rate);
+    }
+}
+
+function renderAvailabilityTable(countryName) {
+    const card = $('#availabilityCard');
+    const body = $('#availabilityTableBody');
+    const countryLabel = $('#availabilityCountry');
+
+    if (!countryName || !countryCasetonAvailability[countryName]) {
+        body.empty();
+        countryLabel.text(countryName || '—');
+        card.addClass('hidden');
+        updateAvailabilityLegend(null);
+        return;
+    }
+
+    const filteredDataset = getSystemFilteredAvailability(countryName) || { available: [], unavailable: [] };
+    const allowedNames = [...(filteredDataset.available || []), ...(filteredDataset.unavailable || [])];
+    ensureCountryAvailabilityState(countryName, {
+        allowed: allowedNames,
+        defaults: filteredDataset.available || []
+    });
+    card.removeClass('hidden');
+    countryLabel.text(countryName);
+    body.empty();
+
+    const buildRows = (items, available) => {
+        const selection = countryAvailabilitySelections[countryName];
+        const checkboxClass = available ? 'text-primary border-gray-300' : 'text-amber-500 border-amber-200';
+        const labelClass = available ? 'text-gray-900' : 'text-gray-500 italic';
+        items.forEach(name => {
+            const checkbox = available
+                ? `<input type="checkbox" class="h-4 w-4 ${checkboxClass} rounded availability-toggle" data-country="${countryName}" data-caseton="${name}" ${selection?.has(name) ? 'checked' : ''}>`
+                : `<input type="checkbox" class="h-4 w-4 ${checkboxClass} rounded availability-toggle" data-country="${countryName}" data-caseton="${name}" ${selection?.has(name) ? 'checked' : ''}>`;
+            body.append(`
+                <tr>
+                    <td class="px-4 py-2 text-center">
+                        ${checkbox}
+                    </td>
+                    <td class="px-4 py-2 ${labelClass}">${name}${available ? '' : ' · Disponibles vía importación, sujetos a cotización*'}</td>
+                </tr>
+            `);
+        });
+    };
+
+    buildRows(filteredDataset.available || [], true);
+    buildRows(filteredDataset.unavailable || [], false);
+    updateAvailabilityLegend(countryName);
 }
 
 function loadCasetones() {
@@ -619,10 +1366,6 @@ function loadCasetones() {
 }
 
 // DXF File Upload
-$('#dropZone').on('click', function() {
-    $('#dxfFile').click();
-});
-
 $('#dropZone').on('dragover', function(e) {
     e.preventDefault();
     $(this).addClass('dragover');
@@ -691,13 +1434,6 @@ function handleDxfFile(file) {
                 });
             }
             
-            // Show debug info if available
-            if (response.debug_info) {
-                message += `<br><strong>Información de depuración:</strong><br>`;
-                message += `Entidades encontradas: ${JSON.stringify(response.debug_info.entity_counts)}<br>`;
-                message += `Capas encontradas: ${response.debug_info.layers_found.join(', ')}<br>`;
-            }
-            
             $('#fileInfo').html(`<div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">${message}</div>`).removeClass('hidden');
             if (response.preview && response.preview.image_base64) {
                 $('#geometryPreview').attr('src', response.preview.image_base64);
@@ -721,8 +1457,9 @@ $('#calculateBtn').on('click', function() {
 });
 
 function performCalculation() {
+    const selectedCountry = $('#country').val();
     // Validate inputs
-    if (!$('#country').val()) {
+    if (!selectedCountry) {
         showError('Por favor, seleccione un país.');
         return;
     }
@@ -731,7 +1468,25 @@ function performCalculation() {
         showError('Primero cargue un archivo DXF válido para obtener la geometría.');
         return;
     }
-    
+
+    if (!validateSlabGeometryInputs()) {
+        return;
+    }
+
+    let selectedCountryCasetones = [];
+    if (countryCasetonAvailability[selectedCountry]) {
+        const filteredAvailability = getSystemFilteredAvailability(selectedCountry) || { available: [], unavailable: [] };
+        const allowedNames = [
+            ...((filteredAvailability.available) || []),
+            ...((filteredAvailability.unavailable) || [])
+        ];
+        selectedCountryCasetones = getCountryAvailabilitySelection(selectedCountry);
+        if (allowedNames.length && !selectedCountryCasetones.length) {
+            showError('Seleccione al menos un casetón para continuar.');
+            return;
+        }
+    }
+
     // Show loading
     $('#loadingIndicator').removeClass('hidden');
     $('#resultsSection').addClass('hidden');
@@ -740,17 +1495,37 @@ function performCalculation() {
     // Collect data
     let data = {
         projectName: $('#projectName').val() || 'Sin nombre',
+        projectDate: $('#projectDate').val(),
         client: $('#client').val() || 'Sin especificar',
         city: $('#city').val() || 'Sin especificar',
-        country: $('#country').val(),
+        country: selectedCountry,
+        currencyName: $('#currencyName').val(),
+        exchangeRate: parseFloat($('#exchangeRate').val()) || null,
         workType: $('#workType').val(),
+        floors: parseInt($('#floors').val(), 10) || null,
+        cyclesPerMonth: (function() {
+            const raw = $('#cyclesPerMonth').val();
+            const value = parseFloat(String(raw ?? '').replace(/,/g, '.'));
+            return Number.isFinite(value) ? value : null;
+        })(),
         slabThickness: parseFloat($('#slabThickness').val()),
+        slabThicknesses: getSelectedSlabThicknessesMeters(),
+        slabType: getSelectedSlabType(),
+        slabGeometry: collectSlabGeometry(),
+        atexSystem: getSelectedAtexSystem(),
+        includeCabetex: $('#includeCabetex').is(':checked'),
+        numberCasetones: $('#numberCasetones').is(':checked'),
+        beamHeight: collectAtexOptions().beamHeightCm,
+        atexOptions: collectAtexOptions(),
         concreteStrength: parseInt($('#concreteStrength').val()),
         steelStrength: parseInt($('#steelStrength').val()),
         selectedCasetonName: $('#casetonType').val(),
         selectedCasetonId: (casetonCatalog[$('#casetonType').val()] || {}).id || null,
         geometry: uploadedGeometry
     };
+    if (countryCasetonAvailability[selectedCountry]) {
+        data.countryAvailableCasetones = selectedCountryCasetones;
+    }
     
     // Send calculation request
     $.ajax({
@@ -768,7 +1543,8 @@ function performCalculation() {
         },
         error: function(xhr) {
             $('#loadingIndicator').addClass('hidden');
-            showError(xhr.responseJSON.error);
+            const message = xhr.responseJSON?.error || xhr.statusText || 'Error en el cálculo. Intente nuevamente.';
+            showError(message);
             finishProgressIndicators(false);
         },
         complete: function() {
@@ -839,7 +1615,6 @@ function displayResults(data) {
     
     // Show results section
     $('#resultsSection').removeClass('hidden').addClass('slide-up');
-    renderSectionPreview(section);
     renderRecommendedHighlight(homologation && homologation.recommended);
     renderHomologation(homologation);
     renderOriginalSectionTable(originalSectionTable);
@@ -934,24 +1709,37 @@ function renderHomologation(homologation) {
     }
 
     $('#homologationCard').removeClass('hidden');
-    const target = homologation.target_value_ratio;
-    $('#homologationTarget').text(target ? `b(o)/I(o) objetivo: ${Number(target).toFixed(3)}` : '');
-
-    const propertiesBody = $('#homologationPropertiesTable tbody');
-    propertiesBody.empty();
-    (homologation.properties || []).forEach(row => {
-        propertiesBody.append(`
-            <tr>
-                <td class="px-4 py-2 text-gray-700">${row.item}</td>
-                <td class="px-4 py-2 text-gray-600">${row.spec}</td>
-                <td class="px-4 py-2 font-semibold text-gray-900">${row.value}</td>
-            </tr>
-        `);
-    });
 
     const optionsBody = $('#homologationOptionsTable tbody');
     optionsBody.empty();
-    homologation.options.forEach(option => {
+
+    const selectedHf = new Set(
+        getSelectedSlabThicknessesCm().map((value) => Number(value.toFixed(3)))
+    );
+    const selectedCountry = $('#country').val();
+    const selectedCasetones = (selectedCountry && countryCasetonAvailability[selectedCountry])
+        ? new Set(getCountryAvailabilitySelection(selectedCountry))
+        : null;
+
+    const filteredOptions = homologation.options.filter(option => {
+        if (selectedHf.size) {
+            const hfValue = typeof option.hf_cm === 'number' ? Number(option.hf_cm.toFixed(3)) : null;
+            if (hfValue === null || !selectedHf.has(hfValue)) {
+                return false;
+            }
+        }
+
+        if (selectedCasetones && selectedCasetones.size) {
+            const casetonName = option.caseton;
+            if (!casetonName || !selectedCasetones.has(casetonName)) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    filteredOptions.forEach(option => {
         const formatVal = (val, digits = 3) => (typeof val === 'number' ? val.toFixed(digits) : '-');
         optionsBody.append(`
             <tr class="${option.check ? 'bg-green-50/40' : ''}">
@@ -1066,11 +1854,28 @@ $('#generatePdfBtn').on('click', function() {
 $('#saveCalculationBtn').on('click', function() {
     let data = {
         projectName: $('#projectName').val() || 'Sin nombre',
+        projectDate: $('#projectDate').val(),
         client: $('#client').val() || 'Sin especificar',
         city: $('#city').val() || 'Sin especificar',
         country: $('#country').val(),
         workType: $('#workType').val(),
+        currencyName: $('#currencyName').val(),
+        exchangeRate: parseFloat($('#exchangeRate').val()) || null,
+        floors: parseInt($('#floors').val(), 10) || null,
+        cyclesPerMonth: (function() {
+            const raw = $('#cyclesPerMonth').val();
+            const value = parseFloat(String(raw ?? '').replace(/,/g, '.'));
+            return Number.isFinite(value) ? value : null;
+        })(),
         slabThickness: parseFloat($('#slabThickness').val()),
+        slabThicknesses: getSelectedSlabThicknessesMeters(),
+        slabType: getSelectedSlabType(),
+        slabGeometry: collectSlabGeometry(),
+        atexSystem: getSelectedAtexSystem(),
+        includeCabetex: $('#includeCabetex').is(':checked'),
+        numberCasetones: $('#numberCasetones').is(':checked'),
+        beamHeight: collectAtexOptions().beamHeightCm,
+        atexOptions: collectAtexOptions(),
         concreteStrength: parseInt($('#concreteStrength').val()),
         steelStrength: parseInt($('#steelStrength').val()),
         casetonType: $('#casetonType').val()
@@ -1103,9 +1908,11 @@ $('#saveCalculationBtn').on('click', function() {
 
 // Utility functions
 function formatCurrency(amount) {
-    const rate = selectedCountryInfo?.exchange_rate || 1;
+    const manualRate = parseFloat($('#exchangeRate').val());
+    const rate = (!Number.isNaN(manualRate) && manualRate > 0) ? manualRate : (selectedCountryInfo?.exchange_rate || 1);
     const converted = amount * rate;
-    const currencyName = selectedCountryInfo?.currency || 'Dólar americano';
+    const manualCurrency = $('#currencyName').val();
+    const currencyName = manualCurrency || selectedCountryInfo?.currency || 'Dólar americano';
     const currencyCode = currencyCodeMap[currencyName] || 'USD';
     try {
         return new Intl.NumberFormat('es', {

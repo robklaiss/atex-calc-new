@@ -53,27 +53,54 @@ def init_database():
             height REAL NOT NULL,
             bw REAL NOT NULL,
             bs REAL NOT NULL,
+            system TEXT NOT NULL,
             consumption REAL NOT NULL,
             rental_price REAL NOT NULL
         )
     """)
+
+    # Ensure legacy tables include the system column
+    cursor.execute("PRAGMA table_info(casetones)")
+    existing_columns = [row[1] for row in cursor.fetchall()]
+    if 'system' not in existing_columns:
+        cursor.execute("ALTER TABLE casetones ADD COLUMN system TEXT DEFAULT 'bidireccional'")
     
+    # Reset casetones data with canonical list
+    cursor.execute("DELETE FROM casetones")
+
     # Insert sample casetones
     casetones = [
-        ('ATEX 800x200', 80, 80, 20, 12, 12, 0.135, 2.50),
-        ('ATEX 800x250', 80, 80, 25, 12, 12, 0.150, 2.80),
-        ('ATEX 800x300', 80, 80, 30, 12, 12, 0.169, 3.00),
-        ('ATEX 800x350', 80, 80, 35, 12, 12, 0.196, 3.20),
-        ('ATEX 800x400', 80, 80, 40, 12, 12, 0.229, 3.40),
-        ('ATEX 1000x200', 100, 100, 20, 12, 12, 0.150, 3.50),
-        ('ATEX 1000x250', 100, 100, 25, 12, 12, 0.175, 3.80),
-        ('ATEX 1000x300', 100, 100, 30, 12, 12, 0.200, 4.10),
-        ('ATEX 1000x350', 100, 100, 35, 12, 12, 0.230, 4.40),
-        ('ATEX 1000x400', 100, 100, 40, 12, 12, 0.265, 4.70)
+        # Bidireccional families
+        ('610x210', 61.0, 61.0, 21.0, 7.0, 12.2, 'bidireccional', 0.111, 0.12),
+        ('610x260', 61.0, 61.0, 26.0, 7.0, 14.8, 'bidireccional', 0.135, 0.12),
+        ('610x300', 61.0, 61.0, 30.0, 7.0, 17.2, 'bidireccional', 0.157, 0.12),
+        ('660x180', 66.0, 66.0, 18.0, 12.0, 15.0, 'bidireccional', 0.116, 0.12),
+        ('660x210', 66.0, 66.0, 21.0, 12.0, 17.2, 'bidireccional', 0.133, 0.12),
+        ('660x260', 66.0, 66.0, 26.0, 12.0, 19.7, 'bidireccional', 0.160, 0.12),
+        ('660x300', 66.0, 66.0, 30.0, 12.0, 22.2, 'bidireccional', 0.185, 0.12),
+        ('700x260', 70.0, 70.0, 26.0, 12.0, 16.4, 'bidireccional', 0.145, 0.12),
+        ('800x200', 80.0, 80.0, 20.0, 12.5, 15.6, 'bidireccional', 0.114, 0.12),
+        ('800x250', 80.0, 80.0, 25.0, 12.5, 17.1, 'bidireccional', 0.134, 0.12),
+        ('800x300', 80.0, 80.0, 30.0, 12.5, 20.0, 'bidireccional', 0.159, 0.12),
+        ('800x350', 80.0, 80.0, 35.0, 12.5, 22.5, 'bidireccional', 0.186, 0.12),
+        ('800x400', 80.0, 80.0, 40.0, 12.5, 25.8, 'bidireccional', 0.219, 0.12),
+        # Unidireccional families
+        ('610Ux210', 61.0, 61.0, 21.0, 7.0, 12.2, 'unidireccional', 0.083, 0.12),
+        ('610Ux260', 61.0, 61.0, 26.0, 7.0, 14.8, 'unidireccional', 0.096, 0.12),
+        ('610Ux300', 61.0, 61.0, 30.0, 7.0, 17.2, 'unidireccional', 0.110, 0.12),
+        ('655Ux180', 70.0, 65.5, 18.0, 11.5, 14.4, 'unidireccional', 0.086, 0.12),
+        ('655Ux210', 70.0, 65.5, 21.0, 11.5, 16.7, 'unidireccional', 0.095, 0.12),
+        ('655Ux260', 70.0, 65.5, 26.0, 11.5, 19.3, 'unidireccional', 0.111, 0.12),
+        ('655Ux300', 70.0, 65.5, 30.0, 11.5, 21.7, 'unidireccional', 0.126, 0.12),
+        ('755Ux200', 80.0, 75.5, 20.0, 8.0, 11.1, 'unidireccional', 0.075, 0.12),
+        ('755Ux250', 80.0, 75.5, 25.0, 8.0, 12.6, 'unidireccional', 0.084, 0.12),
+        ('755Ux300', 80.0, 75.5, 30.0, 8.0, 15.5, 'unidireccional', 0.097, 0.12),
+        ('755Ux350', 80.0, 75.5, 35.0, 8.0, 18.0, 'unidireccional', 0.110, 0.12),
+        ('755Ux400', 80.0, 75.5, 40.0, 8.0, 21.3, 'unidireccional', 0.128, 0.12),
     ]
     
     cursor.executemany(
-        "INSERT OR IGNORE INTO casetones (name, side1, side2, height, bw, bs, consumption, rental_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR IGNORE INTO casetones (name, side1, side2, height, bw, bs, system, consumption, rental_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         casetones
     )
     

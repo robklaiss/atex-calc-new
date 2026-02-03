@@ -12,11 +12,23 @@ DEFAULT_HF_CM = 5.0
 HF_OPTIONS_CM = [5.0, 6.0, 7.0, 7.5, 8.0, 9.0, 10.0, 11.0, 12.0]
 
 
+def _normalize_caseton_name(value: Optional[str]) -> str:
+    if not value:
+        return ''
+    normalized = str(value).strip().lower()
+    normalized = normalized.replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u')
+    normalized = normalized.replace('atex', '')
+    normalized = normalized.replace('casetón', '').replace('caseton', '')
+    normalized = normalized.replace(' ', '')
+    normalized = normalized.replace('-', '')
+    return normalized
+
+
 def _fetch_casetones(database_path: str) -> List[tuple]:
     conn = sqlite3.connect(database_path)
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, name, side1, side2, height, bw, bs, consumption, rental_price FROM casetones ORDER BY name"
+        "SELECT id, name, side1, side2, height, bw, bs, system, consumption, rental_price FROM casetones ORDER BY name"
     )
     rows = cursor.fetchall()
     conn.close()
@@ -70,6 +82,9 @@ def generate_homologation_analysis(
     database_path: str,
     section_metrics: Optional[Dict] = None,
     fallback_params: Optional[Dict] = None,
+    allowed_casetones: Optional[List[str]] = None,
+    hf_options_cm: Optional[List[float]] = None,
+    system: Optional[str] = None,
 ) -> Dict[str, Optional[Dict]]:
     derived_metrics = _derive_section_metrics(section_metrics, fallback_params)
     target_value_ratio = derived_metrics.get('value_ratio')
@@ -77,6 +92,15 @@ def generate_homologation_analysis(
     casetones = _fetch_casetones(database_path)
     options: List[Dict] = []
     recommended_option: Optional[Dict] = None
+    hf_options = list(hf_options_cm) if hf_options_cm else HF_OPTIONS_CM
+    allowed_keys = None
+    if allowed_casetones is not None:
+        allowed_keys = set(
+            _normalize_caseton_name(name)
+            for name in allowed_casetones
+            if name
+        )
+    system_key = str(system).strip().lower() if system else None
 
     for row in casetones:
         (
@@ -87,9 +111,16 @@ def generate_homologation_analysis(
             height,
             bw,
             bs,
+            system_label,
             consumption_base,
             rental_price,
         ) = row
+
+        if system_key is not None and str(system_label or '').strip().lower() != system_key:
+            continue
+
+        if allowed_keys is not None and _normalize_caseton_name(name) not in allowed_keys:
+            continue
 
         bf_cm = float(side1) if side1 else float(side2 or 0)
         if bf_cm <= 0:
@@ -99,7 +130,7 @@ def generate_homologation_analysis(
         bs_cm = float(bs)
         consumption_base = float(consumption_base)
 
-        for hf_cm in HF_OPTIONS_CM:
+        for hf_cm in hf_options:
             try:
                 section = generate_section_plot(
                     'aligerada',
@@ -131,6 +162,7 @@ def generate_homologation_analysis(
                 'inertia_cm4': section.inertia_cm4,
                 'value_ratio': value_ratio,
                 'consumption_m3_m2': consumption,
+                'system': system_label,
                 'check': check,
             }
             options.append(option)
@@ -148,7 +180,7 @@ def generate_homologation_analysis(
         'options': options,
         'recommended': recommended_option,
         'target_value_ratio': target_value_ratio,
-        'hf_options_cm': HF_OPTIONS_CM,
+        'hf_options_cm': hf_options,
         'properties': _build_properties(derived_metrics),
         'original_metrics': derived_metrics,
     }
