@@ -499,16 +499,8 @@ def generate_pdf():
             project_data=data.get('project_data', {}),
             output_dir=app.config['UPLOAD_FOLDER']
         )
-
-        project_data = data.get('project_data', {}) or {}
-        timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M')
-        client_raw = project_data.get('cliente') or 'Sin especificar'
-        project_raw = project_data.get('nombre') or 'Sin nombre'
-        client = secure_filename('-'.join(str(client_raw).replace('_', ' ').strip().split())).replace('_', '-').strip('-')
-        project = secure_filename('-'.join(str(project_raw).replace('_', ' ').strip().split())).replace('_', '-').strip('-')
-        download_name = f"{client}-{project}-{timestamp}.pdf"
-
-        return send_file(pdf_path, as_attachment=True, download_name=download_name)
+        
+        return send_file(pdf_path, as_attachment=True, download_name='atex_report.pdf')
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -525,21 +517,11 @@ def get_countries():
     )
     rows = cursor.fetchall()
     rows_by_name = {row[1]: row for row in rows}
-
-    defaults_by_name = {
-        'República Dominicana': {'currency': 'Peso dominicano', 'exchange_rate': 62.6},
-        'Republica Dominicana': {'currency': 'Peso dominicano', 'exchange_rate': 62.6},
-    }
-
-    countries = []
-    for name in desired_countries:
-        if name in rows_by_name:
-            row = rows_by_name[name]
-            countries.append({'id': row[0], 'name': row[1], 'currency': row[2], 'exchange_rate': row[3]})
-            continue
-        fallback = defaults_by_name.get(name)
-        if fallback:
-            countries.append({'id': None, 'name': name, 'currency': fallback['currency'], 'exchange_rate': fallback['exchange_rate']})
+    countries = [
+        {'id': rows_by_name[name][0], 'name': rows_by_name[name][1], 'currency': rows_by_name[name][2], 'exchange_rate': rows_by_name[name][3]}
+        for name in desired_countries
+        if name in rows_by_name
+    ]
     conn.close()
     return jsonify(countries)
 

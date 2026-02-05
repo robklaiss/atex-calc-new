@@ -1,4 +1,5 @@
 import sqlite3
+import re
 from typing import List, Dict, Optional
 
 from app.utils.section_plotter import generate_section_plot
@@ -22,6 +23,47 @@ def _normalize_caseton_name(value: Optional[str]) -> str:
     normalized = normalized.replace(' ', '')
     normalized = normalized.replace('-', '')
     return normalized
+
+
+_CASETON_NAME_PATTERN = re.compile(
+    r'^(?P<w>\d+(?:[\.,]\d+)?)(?P<suffix>[a-z]+)?x(?P<h>\d+(?:[\.,]\d+)?)$'
+)
+
+
+def _expand_caseton_keys(value: Optional[str]) -> List[str]:
+    normalized = _normalize_caseton_name(value)
+    if not normalized:
+        return []
+
+    keys = {normalized}
+    match = _CASETON_NAME_PATTERN.match(normalized)
+    if not match:
+        return list(keys)
+
+    raw_w = match.group('w')
+    raw_h = match.group('h')
+    suffix = match.group('suffix') or ''
+    try:
+        w = float(raw_w.replace(',', '.'))
+        h = float(raw_h.replace(',', '.'))
+    except ValueError:
+        return list(keys)
+
+    def _add_variant(w_value: float, h_value: float, suffix_value: str) -> None:
+        w_int = int(round(w_value))
+        h_int = int(round(h_value))
+        keys.add(_normalize_caseton_name(f"{w_int}{suffix_value}x{h_int}"))
+        keys.add(_normalize_caseton_name(f"{w_int}x{h_int}"))
+
+    _add_variant(w, h, suffix)
+
+    if w >= 200 and h >= 200:
+        _add_variant(w / 10.0, h / 10.0, suffix)
+
+    if w <= 200 and h <= 200:
+        _add_variant(w * 10.0, h * 10.0, suffix)
+
+    return list(keys)
 
 
 def _fetch_casetones(database_path: str) -> List[tuple]:
@@ -93,14 +135,32 @@ def generate_homologation_analysis(
     options: List[Dict] = []
     recommended_option: Optional[Dict] = None
     hf_options = list(hf_options_cm) if hf_options_cm else HF_OPTIONS_CM
+    system_key = str(system).strip().lower() if system else None
+
     allowed_keys = None
+    strict_allowed_names = None
     if allowed_casetones is not None:
-        allowed_keys = set(
+        raw_allowed = set(
             _normalize_caseton_name(name)
             for name in allowed_casetones
             if name
         )
-    system_key = str(system).strip().lower() if system else None
+        db_name_keys = set()
+        for row in casetones:
+            name = row[1]
+            system_label = row[7]
+            if system_key is not None and str(system_label or '').strip().lower() != system_key:
+                continue
+            db_name_keys.add(_normalize_caseton_name(name))
+
+        if raw_allowed.intersection(db_name_keys):
+            strict_allowed_names = raw_allowed
+            allowed_keys = raw_allowed
+        else:
+            expanded: List[str] = []
+            for name in allowed_casetones:
+                expanded.extend(_expand_caseton_keys(name))
+            allowed_keys = set(key for key in expanded if key)
 
     for row in casetones:
         (
@@ -119,8 +179,9 @@ def generate_homologation_analysis(
         if system_key is not None and str(system_label or '').strip().lower() != system_key:
             continue
 
-        if allowed_keys is not None and _normalize_caseton_name(name) not in allowed_keys:
-            continue
+        if strict_allowed_names is not None:
+            if _normalize_caseton_name(name) not in strict_allowed_names:
+                continue
 
         bf_cm = float(side1) if side1 else float(side2 or 0)
         if bf_cm <= 0:
@@ -129,6 +190,15 @@ def generate_homologation_analysis(
         bw_cm = float(bw)
         bs_cm = float(bs)
         consumption_base = float(consumption_base)
+
+        if strict_allowed_names is None and allowed_keys is not None:
+            caseton_label_cm = f"{int(round(bf_cm))}x{int(round(hv_cm))}"
+            caseton_label_mm = f"{int(round(bf_cm * 10.0))}x{int(round(hv_cm * 10.0))}"
+            candidate_keys = set(_expand_caseton_keys(name))
+            candidate_keys.update(_expand_caseton_keys(caseton_label_cm))
+            candidate_keys.update(_expand_caseton_keys(caseton_label_mm))
+            if allowed_keys.isdisjoint(candidate_keys):
+                continue
 
         for hf_cm in hf_options:
             try:

@@ -559,7 +559,9 @@ const currencyCodeMap = {
     'Sol peruano': 'PEN',
     'Peso chileno': 'CLP',
     'Dólar americano': 'USD',
+    'Peso dominicano': 'DOP',
     'Peso argentino': 'ARS',
+    'Boliviano': 'BOB',
     'Real brasileño': 'BRL',
     'Euro': 'EUR',
     'Guaraní paraguayo': 'PYG'
@@ -585,12 +587,17 @@ function loadCountries() {
         select.empty();
         select.append('<option value="">Seleccione un país</option>');
         countryCatalog = {};
+        const desiredCountries = ['Panamá', 'Colombia', 'República Dominicana', 'Paraguay', 'Argentina', 'Bolivia', 'México'];
+        const countriesByName = {};
         data.forEach(country => {
-            select.append(`<option value="${country.name}">${country.name}</option>`);
-            countryCatalog[country.name] = country;
+            countriesByName[country.name] = country;
+        });
+        desiredCountries.forEach(name => {
+            select.append(`<option value="${name}">${name}</option>`);
+            countryCatalog[name] = countriesByName[name] || { name };
         });
 
-        select.on('change', function() {
+        select.off('change').on('change', function() {
             selectedCountryInfo = countryCatalog[$(this).val()] || null;
         });
     });

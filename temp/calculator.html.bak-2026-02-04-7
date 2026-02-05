@@ -88,7 +88,6 @@
             <p class="text-sm text-gray-500">o haga clic para seleccionar desde su equipo. Formato: .dxf</p>
         </label>
         <input type="file" id="dxfFile" accept=".dxf" class="sr-only">
-        <div id="dropzoneInfo" class="hidden mt-4"></div>
         <div id="previewContainer" class="hidden mt-6">
             <h3 class="text-sm font-semibold text-gray-700 mb-3">Vista previa de la geometría</h3>
             <div class="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
@@ -509,22 +508,6 @@
             </div>
         </div>
 
-        <div id="sectionCard" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hidden mb-8">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i data-lucide="layout-template" class="w-5 h-5 mr-2 text-primary"></i>
-                    Sección / Inercia
-                </h3>
-                <span id="sectionCasetonName" class="text-xs font-semibold uppercase tracking-wide text-gray-500"></span>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="flex justify-center items-center bg-gray-50 border border-gray-100 rounded-xl p-4">
-                    <img id="sectionImage" alt="Sección" class="max-w-full h-auto rounded-lg border border-gray-200 bg-white" />
-                </div>
-                <div id="sectionMetrics" class="grid grid-cols-2 gap-3"></div>
-            </div>
-        </div>
-
         <!-- Original vs geometría -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div id="originalSectionCard" class="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hidden">
@@ -863,9 +846,6 @@ function renderGeometryAnalysis(analysis) {
 let uploadedGeometry = null;
 let lastCalculationResults = null;
 let progressTimers = [];
-let isCalculating = false;
-let calculationDirty = false;
-let calculationRevision = 0;
 let countryCatalog = {};
 let selectedCountryInfo = null;
 let casetonCatalog = {};
@@ -1338,7 +1318,6 @@ $(document).ready(function() {
     setDefaultProjectDate();
     initializeSlabThicknessSelector();
     initializeSlabTypeSwitcher();
-    initializeDirtyTracking();
     updateSlabTotalHeightInput();
     $('#slabHv, #slabHf').on('input', updateSlabTotalHeightInput);
     $('input[name="atexSystem"]').on('change', function() {
@@ -1496,15 +1475,14 @@ $('#dxfFile').on('change', function() {
 });
 
 function handleDxfFile(file) {
-    clearDropzoneInfo();
     // Validate file
     if (!file.name.toLowerCase().endsWith('.dxf')) {
-        showDropzoneError('Por favor, seleccione un archivo DXF válido.');
+        showError('Por favor, seleccione un archivo DXF válido.');
         return;
     }
     
     if (file.size > 16 * 1024 * 1024) { // 16MB
-        showDropzoneError('El archivo es demasiado grande. Máximo permitido: 16MB');
+        showError('El archivo es demasiado grande. Máximo permitido: 16MB');
         return;
     }
     
@@ -1520,8 +1498,6 @@ function handleDxfFile(file) {
         contentType: false,
         success: function(response) {
             uploadedGeometry = response;
-            setCalculationDirty(true);
-            clearDropzoneInfo();
             let message = `Archivo procesado: ${file.name}<br>`;
             message += `Área total: ${response.areas.superficieTotal.toFixed(2)} m²<br>`;
             message += `Casetones encontrados: ${response.casetones.length}<br>`;
@@ -1540,11 +1516,7 @@ function handleDxfFile(file) {
                 });
             }
             
-            if (response.errores && response.errores.length > 0) {
-                showDropzoneError(message);
-            } else {
-                showDropzoneInfo(message);
-            }
+            $('#actionMessage').html(`<div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">${message}</div>`);
             if (response.preview && response.preview.image_base64) {
                 $('#geometryPreview').attr('src', response.preview.image_base64);
                 $('#previewContainer').removeClass('hidden');
@@ -1556,7 +1528,7 @@ function handleDxfFile(file) {
             if (xhr.responseJSON && xhr.responseJSON.error) {
                 message = xhr.responseJSON.error;
             }
-            showDropzoneError(message);
+            showError(message);
         }
     });
 }
@@ -1566,39 +1538,7 @@ $(document).on('click', '#calculateBtn', function() {
     performCalculation();
 });
 
-function setCalculateButtonBusy(busy) {
-    const $btn = $('#calculateBtn');
-    if (!$btn.length) {
-        return;
-    }
-    $btn.prop('disabled', !!busy);
-}
-
-function setCalculationDirty(dirty) {
-    calculationDirty = !!dirty;
-    if (!calculationDirty) {
-        return;
-    }
-    calculationRevision += 1;
-    lastCalculationResults = null;
-    $('#generatePdfBtn').prop('disabled', true);
-    $('#saveCalculationBtn').prop('disabled', true);
-}
-
-function initializeDirtyTracking() {
-    $(document).on('input change', 'input, select, textarea', function(event) {
-        const $target = $(event.target);
-        if ($target.is('#dxfFile') || $target.is('input[type="file"]')) {
-            return;
-        }
-        setCalculationDirty(true);
-    });
-}
-
 function performCalculation() {
-    if (isCalculating) {
-        return;
-    }
     const selectedCountry = $('#country').val();
     // Validate inputs
     if (!selectedCountry) {
@@ -1607,7 +1547,7 @@ function performCalculation() {
     }
     
     if (!uploadedGeometry) {
-        showDropzoneError('Primero cargue un archivo DXF válido para obtener la geometría.');
+        showError('Primero cargue un archivo DXF válido para obtener la geometría.');
         return;
     }
 
@@ -1633,9 +1573,6 @@ function performCalculation() {
     }
 
     // Show loading
-    isCalculating = true;
-    setCalculateButtonBusy(true);
-    const requestRevision = calculationRevision;
     $('#loadingIndicator').removeClass('hidden');
     $('#resultsSection').addClass('hidden');
     startProgressIndicators();
@@ -1684,18 +1621,11 @@ function performCalculation() {
         contentType: 'application/json',
         data: JSON.stringify(data),
         success: function(response) {
-            const hasNewChanges = calculationRevision !== requestRevision;
-            if (!hasNewChanges) {
-                lastCalculationResults = response;
-                calculationDirty = false;
-                $('#generatePdfBtn').prop('disabled', false);
-                $('#saveCalculationBtn').prop('disabled', false);
-            } else {
-                lastCalculationResults = null;
-                setCalculationDirty(true);
-            }
+            lastCalculationResults = response;
             $('#loadingIndicator').addClass('hidden');
             displayResults(response);
+            $('#generatePdfBtn').prop('disabled', false);
+            $('#saveCalculationBtn').prop('disabled', false);
             finishProgressIndicators(true);
         },
         error: function(xhr) {
@@ -1706,8 +1636,6 @@ function performCalculation() {
         },
         complete: function() {
             $('#loadingIndicator').addClass('hidden');
-            isCalculating = false;
-            setCalculateButtonBusy(false);
         }
     });
 }
@@ -1825,7 +1753,6 @@ function displayResults(data) {
     $('#resultsSection').removeClass('hidden').addClass('slide-up');
     const filteredRecommended = renderHomologation(homologation);
     renderRecommendedHighlight(filteredRecommended);
-    renderSectionPreview(section);
     renderOriginalSectionTable(originalSectionTable);
     renderGeometryAnalysis(geometryAnalysis);
     
@@ -2216,35 +2143,6 @@ function showError(message) {
 function showSuccess(message) {
     document.getElementById('successMessage').textContent = message;
     document.getElementById('successModal').classList.remove('hidden');
-}
-
-function showSuccessModal() {
-    document.getElementById('successModal').classList.remove('hidden');
-}
-
-function showDropzoneInfo(message) {
-    const html = `<div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg"><i data-lucide="info" class="w-4 h-4 inline mr-2"></i>${message}</div>`;
-    const $dropzone = $('#dropzoneInfo');
-    if ($dropzone.length) {
-        $dropzone.html(html).removeClass('hidden');
-    }
-    lucide.createIcons();
-}
-
-function showDropzoneError(message) {
-    const html = `<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg"><i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>${message}</div>`;
-    const $dropzone = $('#dropzoneInfo');
-    if ($dropzone.length) {
-        $dropzone.html(html).removeClass('hidden');
-    }
-    lucide.createIcons();
-}
-
-function clearDropzoneInfo() {
-    const $dropzone = $('#dropzoneInfo');
-    if ($dropzone.length) {
-        $dropzone.addClass('hidden').empty();
-    }
 }
 
 function openModal(modalId) {

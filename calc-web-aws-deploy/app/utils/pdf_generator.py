@@ -1,10 +1,14 @@
 from reportlab.platypus import (
-    SimpleDocTemplate,
+    BaseDocTemplate,
     Paragraph,
     Spacer,
     Table,
     TableStyle,
-    Image
+    Image,
+    Frame,
+    PageTemplate,
+    PageBreak,
+    NextPageTemplate
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4
@@ -23,7 +27,65 @@ def generate_pdf_report(results, project_data, output_dir):
     os.close(fd)
     
     # Create PDF document
-    doc = SimpleDocTemplate(filepath, pagesize=A4)
+    page_width, page_height = A4
+
+    def _asset_path(filename):
+        web_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        repo_root = os.path.abspath(os.path.join(web_root, '..'))
+        candidates = [
+            os.path.join(repo_root, 'temp', filename),
+            os.path.join(web_root, 'temp', filename),
+        ]
+        for candidate in candidates:
+            if candidate and os.path.exists(candidate):
+                return candidate
+        return None
+
+    cover_image_path = _asset_path('atex-informe-tapa.png')
+    internal_background_path = _asset_path('atex-informe-fondo-hojas.png')
+    closing_image_path = _asset_path('atex-informe-cierre.png')
+
+    doc = BaseDocTemplate(filepath, pagesize=A4)
+
+    reserved_top = 120
+    left_margin = 72
+    right_margin = 72
+    bottom_margin = 72
+
+    cover_frame = Frame(0, 0, page_width, page_height, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+    internal_frame = Frame(
+        left_margin,
+        bottom_margin,
+        page_width - left_margin - right_margin,
+        page_height - reserved_top - bottom_margin,
+        leftPadding=0,
+        rightPadding=0,
+        topPadding=0,
+        bottomPadding=0,
+    )
+    closing_frame = Frame(0, 0, page_width, page_height, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+
+    def _draw_full_page_image(canvas, image_path):
+        if not image_path or not os.path.exists(image_path):
+            return
+        canvas.saveState()
+        canvas.drawImage(image_path, 0, 0, width=page_width, height=page_height, mask='auto')
+        canvas.restoreState()
+
+    def _cover_on_page(canvas, _doc):
+        _draw_full_page_image(canvas, cover_image_path)
+
+    def _internal_on_page(canvas, _doc):
+        _draw_full_page_image(canvas, internal_background_path)
+
+    def _closing_on_page(canvas, _doc):
+        _draw_full_page_image(canvas, closing_image_path)
+
+    doc.addPageTemplates([
+        PageTemplate(id='cover', frames=[cover_frame], onPage=_cover_on_page, autoNextPageTemplate='internal'),
+        PageTemplate(id='internal', frames=[internal_frame], onPage=_internal_on_page),
+        PageTemplate(id='closing', frames=[closing_frame], onPage=_closing_on_page),
+    ])
     
     # Get styles
     styles = getSampleStyleSheet()
@@ -34,9 +96,18 @@ def generate_pdf_report(results, project_data, output_dir):
         spaceAfter=30,
         alignment=TA_CENTER
     )
+
+    section_title_style = ParagraphStyle(
+        'CustomHeading2Centered',
+        parent=styles['Heading2'],
+        alignment=TA_CENTER
+    )
     
     # Build story
     story = []
+
+    story.append(Spacer(1, 1))
+    story.append(PageBreak())
     
     # Add title
     story.append(Paragraph("ANÁLISIS DE PRECIOS UNITARIOS - SISTEMA ATEX", title_style))
@@ -57,10 +128,12 @@ def generate_pdf_report(results, project_data, output_dir):
     
     project_table = Table(project_info, colWidths=[5*cm, 10*cm])
     project_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), '#E0E0E0'),
-        ('TEXTCOLOR', (0, 0), (-1, -1), black),
+        ('BACKGROUND', (0, 0), (0, -1), '#F48120'),
+        ('TEXTCOLOR', (0, 0), (0, -1), 'white'),
+        ('TEXTCOLOR', (1, 0), (-1, -1), black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
         ('GRID', (0, 0), (-1, -1), 1, black)
@@ -70,7 +143,7 @@ def generate_pdf_report(results, project_data, output_dir):
     story.append(Spacer(1, 20))
     
     # Add ATex APU table
-    story.append(Paragraph("ANÁLISIS DE PRECIOS UNITARIOS - SISTEMA ATEX", styles['Heading2']))
+    story.append(Paragraph("ANÁLISIS DE PRECIOS UNITARIOS - SISTEMA ATEX", section_title_style))
     story.append(Spacer(1, 12))
     
     apu_atex = results.get('tablas', {}).get('APUtecnologiaAtex', [])
@@ -91,7 +164,7 @@ def generate_pdf_report(results, project_data, output_dir):
         # Create table
         apu_table = Table(table_data, colWidths=[1*cm, 6*cm, 2*cm, 3*cm, 3*cm])
         apu_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), '#4F6F52'),
+            ('BACKGROUND', (0, 0), (-1, 0), '#F48120'),
             ('TEXTCOLOR', (0, 0), (-1, 0), 'white'),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -108,7 +181,7 @@ def generate_pdf_report(results, project_data, output_dir):
         story.append(Spacer(1, 20))
     
     # Add Traditional slab APU table
-    story.append(Paragraph("ANÁLISIS DE PRECIOS UNITARIOS - LOSA TRADICIONAL", styles['Heading2']))
+    story.append(Paragraph("ANÁLISIS DE PRECIOS UNITARIOS - LOSA TRADICIONAL", section_title_style))
     story.append(Spacer(1, 12))
     
     apu_maciza = results.get('tablas', {}).get('APUtecnologiaMaciza', [])
@@ -129,7 +202,7 @@ def generate_pdf_report(results, project_data, output_dir):
         # Create table
         apu_table = Table(table_data, colWidths=[1*cm, 6*cm, 2*cm, 3*cm, 3*cm])
         apu_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), '#8A4F7D'),
+            ('BACKGROUND', (0, 0), (-1, 0), '#F48120'),
             ('TEXTCOLOR', (0, 0), (-1, 0), 'white'),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -146,7 +219,7 @@ def generate_pdf_report(results, project_data, output_dir):
         story.append(Spacer(1, 20))
     
     # Add comparison summary
-    story.append(Paragraph("RESUMEN COMPARATIVO", styles['Heading2']))
+    story.append(Paragraph("RESUMEN COMPARATIVO", section_title_style))
     story.append(Spacer(1, 12))
     
     resumen = results.get('resumen', {})
@@ -165,9 +238,10 @@ def generate_pdf_report(results, project_data, output_dir):
     
     comparison_table = Table(comparison_data, colWidths=[7*cm, 5*cm])
     comparison_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 6), (0, 9), '#E0E0E0'),
-        ('BACKGROUND', (1, 6), (1, 9), '#E0E0E0'),
+        ('BACKGROUND', (0, 6), (0, 9), '#F48120'),
+        ('BACKGROUND', (1, 6), (1, 9), '#F48120'),
         ('TEXTCOLOR', (0, 0), (-1, -1), black),
+        ('TEXTCOLOR', (0, 6), (-1, 9), 'white'),
         ('ALIGN', (0, 0), (0, 5), 'LEFT'),
         ('ALIGN', (1, 0), (1, 5), 'RIGHT'),
         ('ALIGN', (0, 6), (-1, 9), 'CENTER'),
@@ -180,6 +254,10 @@ def generate_pdf_report(results, project_data, output_dir):
     ]))
     
     story.append(comparison_table)
+
+    story.append(NextPageTemplate('closing'))
+    story.append(PageBreak())
+    story.append(Spacer(1, 1))
     
     # Build PDF
     doc.build(story)

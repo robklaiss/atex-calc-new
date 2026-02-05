@@ -26,12 +26,15 @@ def init_database():
     
     # Insert sample countries
     countries = [
+        ('Panamá', 'Dólar americano', 1.0),
         ('Colombia', 'Peso colombiano', 3850.0),
+        ('República Dominicana', 'Peso dominicano', 62.6),
         ('México', 'Peso mexicano', 17.0),
         ('Perú', 'Sol peruano', 3.8),
         ('Chile', 'Peso chileno', 850.0),
         ('Ecuador', 'Dólar americano', 1.0),
         ('Argentina', 'Peso argentino', 350.0),
+        ('Bolivia', 'Boliviano', 6.9),
         ('Brasil', 'Real brasileño', 5.0),
         ('España', 'Euro', 0.92),
         ('Estados Unidos', 'Dólar americano', 1.0),
@@ -39,7 +42,13 @@ def init_database():
     ]
     
     cursor.executemany(
-        "INSERT OR IGNORE INTO countries (name, currency, exchange_rate) VALUES (?, ?, ?)",
+        """
+        INSERT INTO countries (name, currency, exchange_rate)
+        VALUES (?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET
+            currency = excluded.currency,
+            exchange_rate = excluded.exchange_rate
+        """,
         countries
     )
     

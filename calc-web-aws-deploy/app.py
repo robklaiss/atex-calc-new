@@ -344,9 +344,29 @@ def get_countries():
     """Get list of available countries"""
     conn = sqlite3.connect(app.config['DATABASE'])
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM countries ORDER BY name")
-    countries = [{'id': row[0], 'name': row[1], 'currency': row[2], 'exchange_rate': row[3]} 
-                 for row in cursor.fetchall()]
+    desired_countries = ['Panamá', 'Colombia', 'República Dominicana', 'Paraguay', 'Argentina', 'Bolivia', 'México']
+    placeholders = ','.join(['?'] * len(desired_countries))
+    cursor.execute(
+        f"SELECT * FROM countries WHERE name IN ({placeholders})",
+        desired_countries
+    )
+    rows = cursor.fetchall()
+    rows_by_name = {row[1]: row for row in rows}
+
+    defaults_by_name = {
+        'República Dominicana': {'currency': 'Peso dominicano', 'exchange_rate': 62.6},
+        'Republica Dominicana': {'currency': 'Peso dominicano', 'exchange_rate': 62.6},
+    }
+
+    countries = []
+    for name in desired_countries:
+        if name in rows_by_name:
+            row = rows_by_name[name]
+            countries.append({'id': row[0], 'name': row[1], 'currency': row[2], 'exchange_rate': row[3]})
+            continue
+        fallback = defaults_by_name.get(name)
+        if fallback:
+            countries.append({'id': None, 'name': name, 'currency': fallback['currency'], 'exchange_rate': fallback['exchange_rate']})
     conn.close()
     return jsonify(countries)
 

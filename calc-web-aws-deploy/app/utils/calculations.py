@@ -43,7 +43,13 @@ def calculate_atex_quantities(geometry_data, country='Colombia', slab_thickness=
     cursor.execute("SELECT currency, exchange_rate FROM countries WHERE name = ?", (country,))
     country_data = cursor.fetchone()
     if not country_data:
-        country_data = ('Peso colombiano', 3850.0)
+        defaults_by_name = {
+            'República Dominicana': ('Peso dominicano', 62.6),
+            'Republica Dominicana': ('Peso dominicano', 62.6),
+            'Colombia': ('Peso colombiano', 3850.0),
+            'Panamá': ('Dólar americano', 1.0),
+        }
+        country_data = defaults_by_name.get(country) or ('Peso colombiano', 3850.0)
     
     # Get APU items
     cursor.execute("""
